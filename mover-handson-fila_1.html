@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOVER Hands-On 9ª chamada — a fila do DR-SP</title>
+<style>
+  :root{
+    --bg:#E9EBEE; --panel:#fff; --ink:#14161A; --muted:#6E767F;
+    --rule:#CFD4DA; --red:#C00000; --amber:#B45309; --steel:#9AA3AC;
+    --steel-soft:#C7CDD3;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:400 15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1360px;margin:0 auto;padding:28px 22px 80px}
+  h1{font-size:27px;font-weight:650;letter-spacing:-.022em;margin:0 0 6px}
+  .lede{color:var(--muted);max-width:74ch;margin:0 0 22px;font-size:14.5px}
+  .lede b{color:var(--ink);font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--rule);padding:18px 20px;margin-bottom:14px}
+  .ptitle{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 12px}
+  /* hero */
+  #queue{width:100%;height:auto;display:block}
+  .herohead{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+  .herohead .ptitle{margin:0}
+  .budget{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .budget input[type=range]{width:150px;accent-color:var(--amber)}
+  .budget output{font-weight:600;color:var(--amber);min-width:96px;text-align:right}
+  .ghost.small{padding:2px 8px;font-size:12px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+  /* filtros */
+  .filters{display:grid;grid-template-columns:minmax(260px,1.3fr) 1fr 1fr;gap:22px}
+  .fgroup{min-width:0}
+  .flabel{font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 7px;display:flex;justify-content:space-between;align-items:baseline}
+  .flabel button{border:0;background:none;color:var(--red);font:inherit;font-size:12px;cursor:pointer;padding:0}
+  .flabel button:hover{text-decoration:underline}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;max-height:112px;overflow:auto;padding-right:3px}
+  .chip{border:1px solid var(--rule);background:#fff;color:var(--ink);font:inherit;font-size:12.5px;
+        padding:3px 9px;cursor:pointer;border-radius:2px;white-space:nowrap}
+  .chip:hover{border-color:var(--muted)}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .chip.hot[aria-pressed="true"]{background:var(--red);border-color:var(--red)}
+  input[type=search]{width:100%;padding:6px 9px;border:1px solid var(--rule);border-radius:2px;font:inherit;font-size:13.5px;background:#fff}
+  input[type=search]:focus,.chip:focus-visible,button:focus-visible,th:focus-visible{outline:2px solid var(--red);outline-offset:1px}
+  .slider{margin-top:2px}
+  .slider input{width:100%;accent-color:var(--red)}
+  .srow{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted)}
+  /* kpis */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--rule);background:#fff;margin-bottom:14px}
+  .kpi{padding:14px 18px;border-right:1px solid var(--rule)}
+  .kpi:last-child{border-right:0}
+  .kpi .n{font-size:25px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+  .kpi .l{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .kpi.cut .n{color:var(--amber)}
+  /* colunas */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .bars{display:flex;flex-direction:column;gap:5px;max-height:330px;overflow:auto}
+  #mix{max-height:none}
+  .bar{display:grid;grid-template-columns:46px 1fr 92px;gap:9px;align-items:center;
+       border:0;background:none;padding:2px 0;font:inherit;cursor:pointer;text-align:left;width:100%}
+  .bar:hover .track{filter:brightness(.92)}
+  .bar .u{font-size:13px;font-weight:600}
+  .bar .track{height:15px;background:var(--steel-soft);position:relative}
+  .bar .track span{display:block;height:100%;background:var(--steel);transition:width .18s ease}
+  .bar.on .u{color:var(--red)}
+  .bar.on .track span{background:var(--red)}
+  .bar .val{font-size:12.5px;color:var(--muted);text-align:right}
+  .mixrow{grid-template-columns:172px 1fr 96px;cursor:default}
+  .mixrow .u{display:block;min-width:0;font-weight:400;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* tabela */
+  .tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .ghost{border:1px solid var(--rule);background:#fff;font:inherit;font-size:13px;padding:5px 11px;cursor:pointer;border-radius:2px}
+  .ghost:hover{border-color:var(--ink)}
+  .tscroll{max-height:560px;overflow:auto;border:1px solid var(--rule)}
+  table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}
+  th{position:sticky;top:0;background:#F4F6F8;text-align:left;font-weight:600;font-size:12.5px;
+     padding:8px 10px;border-bottom:1px solid var(--rule);cursor:pointer;white-space:nowrap;z-index:1}
+  th[data-dir]:after{content:"";margin-left:5px;color:var(--muted)}
+  th[data-dir="1"]:after{content:"▲"}
+  th[data-dir="-1"]:after{content:"▼"}
+  td{padding:7px 10px;border-bottom:1px solid #EDEFF1;vertical-align:top}
+  tr.out td{color:var(--muted);background:#FBFBFC}
+  tr.hot td:first-child{box-shadow:inset 3px 0 0 var(--red)}
+  .num{text-align:right;white-space:nowrap}
+  .tag{font-size:11.5px;border:1px solid var(--rule);padding:1px 5px;border-radius:2px;color:var(--muted);white-space:nowrap}
+  .tag.in{border-color:#B7D5C0;background:#F0F7F2;color:#28623C}
+  .tag.out{border-color:#E5CBA6;background:#FBF4E9;color:var(--amber)}
+  .empty{padding:34px;text-align:center;color:var(--muted);background:#fff}
+  footer{margin-top:26px;color:var(--muted);font-size:12.5px;max-width:88ch}
+  @media (max-width:900px){
+    .filters{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .kpi{border-bottom:1px solid var(--rule)}
+    .cols{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>A fila da 9ª chamada MOVER Hands-On</h1>
+  <p class="lede">Todas as <b>417 propostas do DR-SP</b> entraram em <b>12 minutos e 1 segundo</b>, a partir das 15:00:20 de 28/08/2026.
+  O regulamento distribui os <b>R$ 14,4 milhões</b> por ordem de submissão, não por mérito. Filtre abaixo para ver quem chegou antes — e onde o dinheiro acaba.</p>
+
+  <div class="panel">
+    <div class="herohead">
+      <p class="ptitle" id="heroTitle">Cada traço é uma proposta, na ordem em que entrou. A altura é o valor pedido.</p>
+      <div class="budget">
+        <label for="lim">Recurso que caberia ao DR-SP</label>
+        <input type="range" id="lim" min="1000000" max="24840000" step="200000" value="7200000">
+        <output id="limLab">R$ 7.200.000</output>
+        <button type="button" class="ghost small" data-lim="7200000">metade</button>
+        <button type="button" class="ghost small" data-lim="14400000">tudo</button>
+      </div>
+    </div>
+    <svg id="queue" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Linha do tempo das submissões"></svg>
+    <div class="legend">
+      <span><i style="background:var(--red)"></i>seleção atual</span>
+      <span><i style="background:var(--steel-soft)"></i>demais propostas</span>
+      <span><i style="background:var(--amber);height:2px;margin-bottom:3px"></i><span id="legCut">onde o recurso acaba</span></span>
+    </div>
+  </div>
+
+  <div class="panel filters">
+    <div class="fgroup">
+      <p class="flabel"><span>Unidade executora</span><button type="button" data-clear="un">limpar</button></p>
+      <input type="search" id="unSearch" placeholder="filtrar códigos (ex.: 1.2)" aria-label="Filtrar unidades">
+      <div class="chips" id="unChips" style="margin-top:7px"></div>
+    </div>
+    <div class="fgroup">
+      <p class="flabel"><span>Recurso pedido</span><button type="button" data-clear="v">limpar</button></p>
+      <div class="chips" id="vChips"></div>
+      <p class="flabel" style="margin-top:16px"><span>Porte</span><button type="button" data-clear="g">limpar</button></p>
+      <div class="chips" id="gChips"></div>
+    </div>
+    <div class="fgroup">
+      <p class="flabel"><span>Horário de submissão</span><button type="button" data-clear="t">limpar</button></p>
+      <div class="slider">
+        <div class="srow"><span style="width:26px">de</span><input type="range" id="t0" min="20" max="741" value="20"><span id="t0lab" style="width:64px;text-align:right">15:00:20</span></div>
+        <div class="srow"><span style="width:26px">até</span><input type="range" id="t1" min="20" max="741" value="741"><span id="t1lab" style="width:64px;text-align:right">15:12:21</span></div>
+      </div>
+      <p class="flabel" style="margin-top:16px"><span>Escopo</span><button type="button" data-clear="s">limpar</button></p>
+      <div class="chips" id="sChips"></div>
+      <p class="flabel" style="margin-top:16px"><span>Empresa ou cidade</span><button type="button" data-clear="q">limpar</button></p>
+      <input type="search" id="q" placeholder="ex.: flexmetal, jandira" aria-label="Buscar empresa ou cidade">
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="cols">
+    <div class="panel">
+      <p class="ptitle">Unidades na seleção — clique para incluir ou excluir</p>
+      <div class="bars" id="unBars"></div>
+    </div>
+    <div class="panel">
+      <p class="ptitle">Composição da seleção</p>
+      <div class="bars" id="mix"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tools">
+      <p class="ptitle" style="margin:0" id="tcount"></p>
+      <button class="ghost" id="csv" type="button">Baixar seleção em CSV</button>
+    </div>
+    <div class="tscroll">
+      <table id="tbl">
+        <thead><tr>
+          <th data-k="p" data-dir="1">Fila</th>
+          <th data-k="t">Horário</th>
+          <th data-k="e">Empresa</th>
+          <th data-k="un">Unidade</th>
+          <th data-k="c">Cidade</th>
+          <th data-k="g">Porte</th>
+          <th data-k="s">Escopo</th>
+          <th data-k="v" class="num">Recurso</th>
+          <th data-k="k" class="num">Acumulado DR-SP</th>
+          <th data-k="k">Corte</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="empty" hidden>Nenhuma proposta com esses filtros. Ajuste ou limpe a seleção.</div>
+    </div>
+  </div>
+
+  <footer>
+    Fonte: relatório de ideias da Plataforma Inovação (28/08/2026) e regulamento da categoria MOVER Hands-On Produtividade.
+    Só entram as 417 propostas que chegaram à 2ª etapa; 71 pararam na 1ª e 5 registros de teste foram descartados.
+    A unidade sai do nome da proposta — propostas com duas unidades contam para as duas.
+    A coluna <b>Corte</b> compara o acumulado do DR-SP com a fatia de recurso que você escolhe no controle acima.
+    O padrão é <b>R$ 7,2 milhões</b> — metade dos R$ 14,4 milhões nacionais. Nada no regulamento garante essa divisão: ela é uma hipótese de trabalho.
+    A distribuição é nacional e por ordem de submissão, então a fatia real de São Paulo depende de quando os outros 26 DRs submeteram, o que este relatório não mostra.
+  </footer>
+</div>
+
+<script id="rows" type="application/json">[{"p":1,"t":20,"e":"FLEXMETAL COMPONENTES METALICOS LTDA","u":["1.27"],"c":"Itapevi","g":"Média","s":"Lean + Digitalização","v":80000,"k":80000},{"p":2,"t":21,"e":"COPPER TECNOLOGIA EM METALURGIA LTDA.","u":["7.91"],"c":"Botucatu","g":"Média","s":"Lean","v":80000,"k":160000},{"p":3,"t":21,"e":"H S A AUTOMOTIVE SYSTEMS LTDA","u":["1.23"],"c":"Mauá","g":"Média","s":"Lean + Digitalização","v":80000,"k":240000},{"p":4,"t":22,"e":"INDUSTRIA METALURGICA A PEDRO LTDA","u":["1.23"],"c":"São Caetano do Sul","g":"Média","s":"Lean + Digitalização","v":80000,"k":320000},{"p":5,"t":24,"e":"JOBFLEX CORTE INDUSTRIA E COMERCIO LTDA","u":["1.23"],"c":"São Caetano do Sul","g":"Micro","s":"Lean","v":40000,"k":360000},{"p":6,"t":25,"e":"Silikonbrasil LTDA.","u":["5.02","5.01"],"c":"Jundiaí","g":"Média","s":"Lean + Digitalização","v":80000,"k":440000},{"p":7,"t":26,"e":"IGEATEL INDUSTRIAL LTDA","u":["5.01"],"c":"Limeira","g":"Média","s":"Digitalização","v":80000,"k":520000},{"p":8,"t":26,"e":"FAROIS VINCO IND E COM LTDA","u":["1.13"],"c":"São Paulo","g":"Média","s":"Lean","v":80000,"k":600000},{"p":9,"t":26,"e":"TECNOFIX INDUSTRIA E COMERCIO DE PARAFUSOS LTDA","u":["4.02"],"c":"Sorocaba","g":"Média","s":"Digitalização","v":80000,"k":680000},{"p":10,"t":27,"e":"ATX TREFILADOS DO BRASIL LTDA","u":["1.24"],"c":"Ferraz de Vasconcelos","g":"Média","s":"Lean","v":80000,"k":760000},{"p":11,"t":27,"e":"TORCISAO TORNEADOS DE PRECISAO LTDA","u":["1.08","1.06"],"c":"São Paulo","g":"Média","s":"Lean + Digitalização","v":80000,"k":840000},{"p":12,"t":30,"e":"T & T IMPORTACAO EXPORTACAO INDUSTRIA E COMERCIO LTDA","u":["4.02"],"c":"Piedade","g":"Micro","s":"Lean","v":40000,"k":880000},{"p":13,"t":30,"e":"SEARS SEATING DO BRASIL COMERCIO E INDUSTRIA DE ASSENTOS LTDA","u":["1.27"],"c":"São Roque","g":"Média","s":"Lean + Digitalização","v":120000,"k":1000000},{"p":14,"t":31,"e":"REMPEL & CIA LTDA","u":["1.06","1.13"],"c":"São Paulo","g":"Média","s":"Digitalização","v":80000,"k":1080000},{"p":15,"t":32,"e":"TTB INDUSTRIA E COMERCIO DE PRODUTOS METALICOS LTDA","u":["1.06"],"c":"Cabreúva","g":"Média","s":"Lean + Digitalização","v":80000,"k":1160000},{"p":16,"t":33,"e":"S.M.I. SOROCABA MOLDES E INJECAO LTDA","u":["4.02"],"c":"Sorocaba","g":"Pequena","s":"Lean","v":40000,"k":1200000},{"p":17,"t":33,"e":"BRUSINAGEM TORNEARIA LTDA","u":["5.01"],"c":"Campinas","g":"Micro","s":"Lean","v":40000,"k":1240000},{"p":18,"t":35,"e":"ZAM PERES LTDA","u":["9.27","6.04"],"c":"Marília","g":"Micro","s":"Lean + Digitalização","v":40000,"k":1280000},{"p":19,"t":35,"e":"CONDUMAX - ELETRO METALURGICA CIAFUNDI LTDA","u":["8.01"],"c":"Olímpia","g":"Grande","s":"Lean","v":120000,"k":1400000},{"p":20,"t":36,"e":"TECCOM INDUSTRIA E COMERCIO DE PRODUTOS TECNICOS EM COMBUSTAO LTDA","u":["1.23"],"c":"São Caetano do Sul","g":"Média","s":"Lean + Digitalização","v":80000,"k":1480000},{"p":21,"t":38,"e":"INTERMEC AUTOMOTIVE INDUSTRIA E COMERCIO LTDA","u":["5.01"],"c":"Holambra","g":"Pequena","s":"Digitalização","v":40000,"k":1520000},{"p":22,"t":39,"e":"UNION TRUCK SERVICOS E IMPLEMENTOS RODOVIARIOS LTDA","u":["1.27","1.19"],"c":"Osasco","g":"Micro","s":"Digitalização","v":40000,"k":1560000},{"p":23,"t":40,"e":"MUNDOFIXX ETIQUETAS LTDA","u":["4.02"],"c":"Votorantim","g":"Micro","s":"Lean","v":40000,"k":1600000},{"p":24,"t":40,"e":"MAMUTE COMERCIO DE PECAS EM FIBRAS LTDA","u":["5.01","5.12"],"c":"Hortolândia","g":"Micro","s":"Lean","v":40000,"k":1640000},{"p":25,"t":41,"e":"STAMPER INDUSTRIA E COMERCIO DE PECAS LTDA","u":["1.09","1.25"],"c":"Diadema","g":"Média","s":"Lean","v":80000,"k":1720000},{"p":26,"t":42,"e":"STAMPER LOCK INDUSTRIA E COMERCIO DE PECAS LTDA","u":["1.09","1.25"],"c":"Diadema","g":"Média","s":"Lean","v":80000,"k":1800000},{"p":27,"t":42,"e":"CITTA ELETRONICA INDUSTRIA E COMERCIO LTDA","u":["1.06","1.09"],"c":"São Paulo","g":"Pequena","s":"Digitalização","v":40000,"k":1840000},{"p":28,"t":42,"e":"HPPT INDUSTRIA E COMERCIO DE TUBOS E PECAS PLASTICAS LTDA","u":["1.27"],"c":"Santana de Parnaíba","g":"Média","s":"Lean + Digitalização","v":80000,"k":1920000},{"p":29,"t":42,"e":"G. W. F. INDUSTRIA E COMERCIO DE PECAS NOVAS E REMANUFATURADAS LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":1960000},{"p":30,"t":42,"e":"BOVOLATO & SCHULTZ PROSPERITY LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Pequena","s":"Lean","v":40000,"k":2000000},{"p":31,"t":43,"e":"WHITE RUBBER INDUSTRIA E COMERCIO DE LATEX E BORRACHAS LTDA","u":[],"c":"Poloni","g":"Micro","s":"Não identificado","v":40000,"k":2040000},{"p":32,"t":44,"e":"WAR- INDUSTRIA E COMERCIO DE PECAS LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":2080000},{"p":33,"t":45,"e":"PRESMETAL INDUSTRIA E COMERCIO DE ARTEFATOS ESTAMPADOS DE METAIS LTDA.","u":["1.24","1.27"],"c":"Itaquaquecetuba","g":"Média","s":"Lean + Digitalização","v":80000,"k":2160000},{"p":34,"t":45,"e":"MAHLE METAL LEVE S.A.","u":["5.63"],"c":"Mogi Guaçu","g":"Grande","s":"Digitalização","v":120000,"k":2280000},{"p":35,"t":46,"e":"ARNIFLEX INDUSTRIA E COM.DE ARTEFATOS DE BORRACHA LTDA","u":["1.25","1.20"],"c":"Diadema","g":"Média","s":"Lean","v":80000,"k":2360000},{"p":36,"t":46,"e":"AUTUS INDUSTRIA E COMERCIO LTDA","u":["1.23"],"c":"São Caetano do Sul","g":"Micro","s":"Lean","v":40000,"k":2400000},{"p":37,"t":47,"e":"TORO EQUIPAMENTOS LTDA","u":["6.03"],"c":"Araraquara","g":"Média","s":"Lean","v":80000,"k":2480000},{"p":38,"t":47,"e":"CARLOS A VIANA","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":2520000},{"p":39,"t":48,"e":"ROBERT BOSCH LIMITADA","u":["5.01"],"c":"Campinas","g":"Grande","s":"Digitalização","v":120000,"k":2640000},{"p":40,"t":48,"e":"EUROLAF VEICULOS ESPECIAIS LTDA","u":["4.02"],"c":"Tatuí","g":"Média","s":"Lean","v":80000,"k":2720000},{"p":41,"t":48,"e":"SERRALHERIA OLICAM LTDA","u":["5.01"],"c":"Valinhos","g":"Pequena","s":"Lean","v":40000,"k":2760000},{"p":42,"t":49,"e":"BATERIAS CRAL LTDA","u":["7.01","6.02"],"c":"Bauru","g":"Média","s":"Lean","v":120000,"k":2880000},{"p":43,"t":51,"e":"METALURGICA EDARP LTDA","u":["1.28"],"c":"Guarulhos","g":"Média","s":"Lean","v":80000,"k":2960000},{"p":44,"t":51,"e":"CEZARINO & MOYA LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Média","s":"Lean + Digitalização","v":80000,"k":3040000},{"p":45,"t":52,"e":"IPA INDUSTRIA DE PRODUTOS AUTOMOTIVOS RGS LTDA","u":["5.01"],"c":"Jaguariúna","g":"Média","s":"Lean + Digitalização","v":80000,"k":3120000},{"p":46,"t":54,"e":"MAHLE METAL LEVE S.A.","u":["5.63"],"c":"Mogi Guaçu","g":"Grande","s":"Lean","v":120000,"k":3240000},{"p":47,"t":54,"e":"FORT RUBBER COMPONENTES INDUSTRIAIS LTDA","u":["1.13"],"c":"São Paulo","g":"Micro","s":"Lean","v":40000,"k":3280000},{"p":48,"t":55,"e":"R.V. INDUSTRIA E COMERCIO DE PECAS ELETRICAS LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":3320000},{"p":49,"t":56,"e":"PADIM PECAS LTDA","u":["1.24","1.06"],"c":"Mogi das Cruzes","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":3360000},{"p":50,"t":56,"e":"CORNETA AUTO PECAS LTDA.","u":["5.01","5.03"],"c":"Piracicaba","g":"Micro","s":"Lean","v":40000,"k":3400000},{"p":51,"t":57,"e":"JMO INDUSTRIA MECANICA LTDA","u":["4.02"],"c":"Iperó","g":"Média","s":"Lean","v":80000,"k":3480000},{"p":52,"t":57,"e":"RF REPARACAO E PROJETOS AUTOMOTIVOS LTDA","u":["5.68"],"c":"Franco da Rocha","g":"Micro","s":"Lean","v":40000,"k":3520000},{"p":53,"t":58,"e":"PLASTICOMP INDUSTRIA & COMERCIO DE COMPONENTES PLASTICOS LTDA","u":["5.01"],"c":"Valinhos","g":"Média","s":"Lean + Digitalização","v":80000,"k":3600000},{"p":54,"t":59,"e":"DTEX INDUSTRIA E COMERCIO LTDA","u":["4.02"],"c":"Sorocaba","g":"Pequena","s":"Digitalização","v":40000,"k":3640000},{"p":55,"t":60,"e":"BOTTO INDUSTRIA E COMÉRCIO EIRELI.","u":["5.02"],"c":"Jundiaí","g":"Média","s":"Lean","v":80000,"k":3720000},{"p":56,"t":61,"e":"METALURGICA INDUMEPI LTDA","u":["4.02"],"c":"Pilar do Sul","g":"Micro","s":"Lean","v":40000,"k":3760000},{"p":57,"t":61,"e":"METALSA BRASIL INDUSTRIA E COMERCIO DE AUTOPECAS LTDA.","u":["1.27","1.19"],"c":"Osasco","g":"Média","s":"Lean + Digitalização","v":120000,"k":3880000},{"p":58,"t":62,"e":"LUPATO PECAS E SERVICOS LTDA","u":["6.02"],"c":"Brodowski","g":"Média","s":"Lean","v":80000,"k":3960000},{"p":59,"t":62,"e":"PINGUIM INDUSTRIA E COMERCIO DE RADIADORES LTDA","u":["1.13"],"c":"São Paulo","g":"Média","s":"Lean","v":80000,"k":4040000},{"p":60,"t":62,"e":"BRAWWA COMERCIO E ORGANIZACAO LOGISTICA LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Média","s":"Lean","v":80000,"k":4120000},{"p":61,"t":62,"e":"VIKA INDUSTRIA DE AUTO PECAS E COMERCIO LTDA","u":["4.01"],"c":"Salto","g":"Pequena","s":"Lean","v":40000,"k":4160000},{"p":62,"t":62,"e":"LABOR EQUIPAMENTOS RODOVIARIOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Média","s":"Lean","v":80000,"k":4240000},{"p":63,"t":62,"e":"AQUARIUS USINAGEM E ESTAMPARIA LTDA.","u":["1.23"],"c":"São Caetano do Sul","g":"Média","s":"Lean + Digitalização","v":80000,"k":4320000},{"p":64,"t":63,"e":"TRAGIAL INDUSTRIA E COMERCIO DE PECAS LTDA","u":["7.01"],"c":"Bauru","g":"Média","s":"Lean","v":80000,"k":4400000},{"p":65,"t":64,"e":"MUNDIFLEX PECAS AUTOMOTIVAS LTDA","u":["5.01","5.05"],"c":"Limeira","g":"Micro","s":"Lean","v":40000,"k":4440000},{"p":66,"t":64,"e":"COMPANHIA BRASILEIRA DE FERRO E ACO LTDA.","u":["1.27","1.19"],"c":"Osasco","g":"Média","s":"Digitalização","v":120000,"k":4560000},{"p":67,"t":67,"e":"METALURGICA CONFOR LTDA","u":["5.63"],"c":"Itapira","g":"Média","s":"Lean","v":80000,"k":4640000},{"p":68,"t":67,"e":"HI-LEX DO BRASIL LTDA.","u":["4.01"],"c":"Itu","g":"Média","s":"Lean + Digitalização","v":120000,"k":4760000},{"p":69,"t":67,"e":"DOBRE - EIXO PECAS E SERVICOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":4800000},{"p":70,"t":67,"e":"MASTER MULTI MARCAS FABRICA DE BAUS LTDA","u":["1.27"],"c":"Santana de Parnaíba","g":"Micro","s":"Lean","v":40000,"k":4840000},{"p":71,"t":68,"e":"CARTONALE INDUSTRIA E BENEFICIAMENTO DE MATERIAIS PLASTICOS LTDA.","u":["1.27"],"c":"Cajamar","g":"Média","s":"Lean + Digitalização","v":120000,"k":4960000},{"p":72,"t":69,"e":"HK INDUSTRIA E COMERCIO DE COMPONENTES AUTOMOTIVOS LTDA","u":["1.06"],"c":"São Paulo","g":"Pequena","s":"Digitalização","v":40000,"k":5000000},{"p":73,"t":69,"e":"OPMOBILITY EXTERIOR DO BRASIL LTDA","u":["3.02","3.01"],"c":"Taubaté","g":"Grande","s":"Lean + Digitalização","v":120000,"k":5120000},{"p":74,"t":70,"e":"ZANINI RENK EQUIPAMENTOS INDUSTRIAIS LTDA","u":["6.02"],"c":"Cravinhos","g":"Grande","s":"Lean","v":120000,"k":5240000},{"p":75,"t":71,"e":"CAN INDUSTRIA E COMERCIO LTDA","u":["4.02"],"c":"Sorocaba","g":"Micro","s":"Lean","v":40000,"k":5280000},{"p":76,"t":71,"e":"PROMASQ INDUSTRIA E COMERCIO DE PRODUTOS DE BORRACHAS LTDA","u":["1.27"],"c":"Cajamar","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":5320000},{"p":77,"t":73,"e":"FAPP INDUSTRIA METALURGICA LTDA","u":["6.61","7.90"],"c":"Jaú","g":"Micro","s":"Lean + Digitalização","v":40000,"k":5360000},{"p":78,"t":74,"e":"INTERMETAL INDUSTRIA E COMERCIO DE PECAS LTDA","u":["5.68"],"c":"Caieiras","g":"Pequena","s":"Lean","v":40000,"k":5400000},{"p":79,"t":74,"e":"ELETROMEC - SR COMERCIO DE CONEXOES ELETRICAS LTDA","u":["4.01","4.03"],"c":"São Roque","g":"Pequena","s":"Lean","v":40000,"k":5440000},{"p":80,"t":74,"e":"F.A. COMPETICOES LTDA","u":["1.38","1.06"],"c":"Cotia","g":"Pequena","s":"Digitalização","v":40000,"k":5480000},{"p":81,"t":75,"e":"VALE USINAGEM E MANUTENCAO MECANICA INDUSTRIAL LTDA","u":["3.02","3.03"],"c":"Jacareí","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":5520000},{"p":82,"t":76,"e":"MEGA WHIP INDUSTRIA E COMERCIO DE CHICOTES ELETRICOS LTDA","u":["7.91"],"c":"Botucatu","g":"Média","s":"Lean","v":80000,"k":5600000},{"p":83,"t":76,"e":"EUROAMERICAN DO BRASIL IMPORTACAO INDUSTRIA E COMERCIO LTDA","u":["1.27"],"c":"Jandira","g":"Média","s":"Lean + Digitalização","v":120000,"k":5720000},{"p":84,"t":77,"e":"TORATA INDUSTRIA E SERVICOS DE CROMAGEM LTDA","u":["4.01"],"c":"Porto Feliz","g":"Média","s":"Lean","v":80000,"k":5800000},{"p":85,"t":77,"e":"ARGOS INDUSTRIAL LTDA","u":["1.23"],"c":"Mauá","g":"Média","s":"Lean + Digitalização","v":80000,"k":5880000},{"p":86,"t":78,"e":"STOCK BRASIL - TECNOLOGIA EM PRODUTOS E PROCESSOS LTDA","u":["1.06","1.20"],"c":"São Bernardo do Campo","g":"Pequena","s":"Digitalização","v":40000,"k":5920000},{"p":87,"t":79,"e":"LUC INDUSTRIA E COMERCIO LTDA","u":["4.02"],"c":"Sorocaba","g":"Micro","s":"Lean","v":40000,"k":5960000},{"p":88,"t":79,"e":"GFERTEC MOLDES E PLASTICOS LTDA","u":["4.01"],"c":"Salto","g":"Pequena","s":"Lean","v":40000,"k":6000000},{"p":89,"t":79,"e":"TECH-IND TECNOLOGIA INDUSTRIAL LTDA","u":["4.02"],"c":"Sorocaba","g":"Média","s":"Lean","v":80000,"k":6080000},{"p":90,"t":80,"e":"TRUCK-ART EQUIPAMENTOS RODOVIARIOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":6120000},{"p":91,"t":81,"e":"SCA IMPLEMENTOS SLU LTDA","u":["1.27"],"c":"Cotia","g":"Pequena","s":"Digitalização","v":40000,"k":6160000},{"p":92,"t":82,"e":"LABOR EQUIPAMENTOS RODOVIARIOS LTDA","u":["1.28"],"c":"Taubaté","g":"Média","s":"Lean","v":80000,"k":6240000},{"p":93,"t":82,"e":"FERNANDO FERREIRA VANZELA & CIA LTDA","u":["8.01"],"c":"José Bonifácio","g":"Micro","s":"Lean","v":40000,"k":6280000},{"p":94,"t":82,"e":"RENOVADORA ELETRO MECANICA J R LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":6320000},{"p":95,"t":83,"e":"FABRICA DE CARROCERIAS MAZUCO LTDA","u":["5.92"],"c":"Vargem Grande do Sul","g":"Micro","s":"Lean","v":40000,"k":6360000},{"p":96,"t":83,"e":"COMERCIAL RONCHESI LTDA","u":["7.91"],"c":"São Manuel","g":"Micro","s":"Lean","v":40000,"k":6400000},{"p":97,"t":84,"e":"SAFISA INDUSTRIA DE AUTO PARTES LTDA","u":["5.68"],"c":"Itatiba","g":"Pequena","s":"Lean","v":40000,"k":6440000},{"p":98,"t":84,"e":"V. S. DE LIMA & CIA LTDA.","u":["1.06","5.91"],"c":"Bragança Paulista","g":"Média","s":"Lean + Digitalização","v":80000,"k":6520000},{"p":99,"t":84,"e":"VPOL EQUIPAMENTOS HIDRAULICOS LTDA","u":["1.27","1.38"],"c":"Vargem Grande Paulista","g":"Média","s":"Lean + Digitalização","v":80000,"k":6600000},{"p":100,"t":85,"e":"FAMOSA ESTOFADOS PARA VAN'S LTDA","u":["1.13"],"c":"São Paulo","g":"Micro","s":"Lean","v":40000,"k":6640000},{"p":101,"t":86,"e":"COMIL COVER SAND INDUSTRIA E COMERCIO LTDA","u":["1.24","1.27"],"c":"Itaquaquecetuba","g":"Média","s":"Lean + Digitalização","v":120000,"k":6760000},{"p":102,"t":86,"e":"BORHEVEA AGRO INDUSTRIA DE BORRACHAS LTDA","u":["8.90"],"c":"Meridiano","g":"Micro","s":"Lean","v":40000,"k":6800000},{"p":103,"t":86,"e":"MARELLI SISTEMAS AUTOMOTIVOS INDUSTRIA E COMERCIO BRASIL LTDA","u":["1.23"],"c":"Mauá","g":"Grande","s":"Lean + Digitalização","v":120000,"k":6920000},{"p":104,"t":88,"e":"INDUSTRIAS PEGORARI AGRICOLA E TEXTIL LTDA","u":["5.63"],"c":"Itapira","g":"Média","s":"Lean","v":80000,"k":7000000},{"p":105,"t":88,"e":"DJ ELETROMECANICA LTDA","u":["6.61","7.90"],"c":"Lençóis Paulista","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":7040000},{"p":106,"t":89,"e":"NOVATREF TREFILADOS DE PRECISAO LTDA","u":["1.24"],"c":"Ferraz de Vasconcelos","g":"Pequena","s":"Lean","v":40000,"k":7080000},{"p":107,"t":89,"e":"BITENCOURT & RIBEIRO USINAGEM LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":7120000},{"p":108,"t":89,"e":"NOVA GERACAO FREIOS INDUSTRIA E COMERCIO LTDA","u":["5.01","5.12"],"c":"Hortolândia","g":"Pequena","s":"Digitalização","v":40000,"k":7160000},{"p":109,"t":89,"e":"Indústria e Comércio de Baterias Rozineli","u":["5.01"],"c":"Limeira","g":"Pequena","s":"Digitalização","v":40000,"k":7200000},{"p":110,"t":91,"e":"TECHMAS INDUSTRIA E COMERCIO DE PECAS E SERVICOS DE SOLDA LTDA","u":["1.23"],"c":"Ribeirão Pires","g":"Micro","s":"Lean","v":40000,"k":7240000},{"p":111,"t":91,"e":"G-KT DO BRASIL LTDA","u":["4.01"],"c":"Cabreúva","g":"Grande","s":"Lean","v":120000,"k":7360000},{"p":112,"t":91,"e":"CHRISTENSEN RODER INDUSTRIA DE PRODUTOS DIAMANTADOS LTDA","u":["1.20","1.25"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":80000,"k":7440000},{"p":113,"t":91,"e":"BATISTA RIBEIRO & CIA PECAS LTDA","u":["6.61","7.90"],"c":"Jaú","g":"Micro","s":"Lean + Digitalização","v":40000,"k":7480000},{"p":114,"t":93,"e":"SOLUTION CONTROLES INDUSTRIAIS LTDA","u":["3.02","3.03"],"c":"Jacareí","g":"Média","s":"Lean + Digitalização","v":80000,"k":7560000},{"p":115,"t":93,"e":"ALL ELETRIC LTDA","u":["6.61","7.90"],"c":"Lençóis Paulista","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":7600000},{"p":116,"t":94,"e":"ITASCAP INDUSTRIA DE AUTOPECAS LTDA","u":["5.63"],"c":"Itapira","g":"Média","s":"Lean","v":120000,"k":7720000},{"p":117,"t":94,"e":"RIVETS INDUSTRIA E COMERCIO LTDA","u":["1.13","1.08"],"c":"São Paulo","g":"Média","s":"Lean","v":80000,"k":7800000},{"p":118,"t":94,"e":"METALURGICA METODUS LTDA","u":["1.23"],"c":"Mauá","g":"Micro","s":"Lean","v":40000,"k":7840000},{"p":119,"t":95,"e":"DACOTA CONDUTORES ELETRICOS LTDA","u":["5.92"],"c":"São João da Boa Vista","g":"Média","s":"Lean","v":120000,"k":7960000},{"p":120,"t":96,"e":"LUCIANO GOMES DOS SANTOS PECAS ELETRICAS","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":8000000},{"p":121,"t":97,"e":"HS SERVICOS DE PINTURA INDUSTRIAL DE PECAS E ACESSORIOS LTDA","u":["5.01"],"c":"Santa Bárbara D'Oeste","g":"Pequena","s":"Digitalização","v":40000,"k":8040000},{"p":122,"t":98,"e":"IRBAS INDUSTRIA AUTOMOTIVA LTDA","u":["1.20","1.08"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":80000,"k":8120000},{"p":123,"t":99,"e":"FORMCAR DO BRASIL SISTEMAS AUTOMOTIVOS LTDA.","u":["4.01"],"c":"Porto Feliz","g":"Média","s":"Lean","v":80000,"k":8200000},{"p":124,"t":100,"e":"INDUSTRIAS BRASILEIRAS DE ARTIGOS REFRATARIOS - IBAR - LTDA","u":["1.24","1.27"],"c":"Poá","g":"Grande","s":"Lean + Digitalização","v":120000,"k":8320000},{"p":125,"t":101,"e":"ROM MASTER POLIMEROS E PIGMENTOS LTDA","u":["5.01"],"c":"Valinhos","g":"Média","s":"Lean + Digitalização","v":80000,"k":8400000},{"p":126,"t":101,"e":"EVERALDO A. FIORENZI","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":8440000},{"p":127,"t":102,"e":"METALFAST INDUSTRIA E COMERCIO LTDA","u":["4.02"],"c":"Salto de Pirapora","g":"Média","s":"Digitalização","v":80000,"k":8520000},{"p":128,"t":102,"e":"RUBBERKING INDUSTRIA E COMERCIO DE AUTOPECAS LTDA","u":["6.02"],"c":"Cajuru","g":"Média","s":"Lean","v":80000,"k":8600000},{"p":129,"t":102,"e":"KEY-SERV INDUSTRIA E COMERCIO LTDA","u":["1.06","1.25"],"c":"Diadema","g":"Média","s":"Digitalização","v":80000,"k":8680000},{"p":130,"t":102,"e":"XR ENGENHARIA LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":8720000},{"p":131,"t":102,"e":"INJECTPOLI INJECAO TECNICA DO BRASIL LTDA","u":["5.01"],"c":"Vinhedo","g":"Média","s":"Lean","v":80000,"k":8800000},{"p":132,"t":103,"e":"K.J. INDÚSTRIAS REUNIDAS DE PLASTICOS LTDA","u":["1.27","1.19"],"c":"Carapicuíba","g":"Pequena","s":"Digitalização","v":40000,"k":8840000},{"p":133,"t":106,"e":"DOM PLAST INDUSTRIA E COMERCIO LTDA","u":["5.62"],"c":"Indaiatuba","g":"Micro","s":"Lean","v":40000,"k":8880000},{"p":134,"t":106,"e":"ARESTA ESTAMPARIA DE METAIS LTDA","u":["1.28"],"c":"Guarulhos","g":"Média","s":"Lean","v":80000,"k":8960000},{"p":135,"t":106,"e":"VAGNER C. VOLPI","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":9000000},{"p":136,"t":108,"e":"CARTHUR INDUSTRIA E COMERCIO DE PECAS AUTOMOTIVAS LTDA","u":["1.24"],"c":"Itaquaquecetuba","g":"Pequena","s":"Lean","v":40000,"k":9040000},{"p":137,"t":108,"e":"KARINA DISTRIBUIDORA DE AUTOPECAS LTDA","u":["1.27","1.19"],"c":"Taboão da Serra","g":"Micro","s":"Lean + Digitalização","v":40000,"k":9080000},{"p":138,"t":108,"e":"AMIGOS DO SIDER INDUSTRIA E COMERCIO LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":9120000},{"p":139,"t":109,"e":"ANODIZAR SOROCABA INDUSTRIAL LTDA","u":["4.02"],"c":"Sorocaba","g":"Pequena","s":"Lean","v":40000,"k":9160000},{"p":140,"t":109,"e":"RODE PART'S INDUSTRIA E COMERCIO DE PECAS PARA MOTOS LTDA","u":["1.02","1.28"],"c":"São Paulo","g":"Micro","s":"Lean","v":40000,"k":9200000},{"p":141,"t":109,"e":"STAMPJET-INDUSTRIA E COMERCIO LTDA","u":["5.01"],"c":"Valinhos","g":"Média","s":"Digitalização","v":80000,"k":9280000},{"p":142,"t":110,"e":"USINAGEM NADAI LTDA","u":["5.01"],"c":"Americana","g":"Pequena","s":"Digitalização","v":40000,"k":9320000},{"p":143,"t":110,"e":"TRAVAO FREIOS INDUSTRIA, COMERCIO, SERVICOS E TREINAMENTOS LTDA","u":["6.02"],"c":"Cravinhos","g":"Micro","s":"Lean","v":40000,"k":9360000},{"p":144,"t":110,"e":"TWIDE INDUSTRIA E COMERCIO DE MOLDES E PRODUTOS INJETADOS LTDA","u":["1.23"],"c":"Santo André","g":"Micro","s":"Lean","v":40000,"k":9400000},{"p":145,"t":110,"e":"TRINK AUTOMOTIVE LTDA.","u":["1.27"],"c":"Barueri","g":"Média","s":"Lean + Digitalização","v":80000,"k":9480000},{"p":146,"t":110,"e":"ADENA INDUSTRIA E COMERCIO DE MAQUINAS, PECAS E ACESSORIOS AUTOMOTIVOS LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":9520000},{"p":147,"t":111,"e":"EGSA EQUIPAMENTOS PARA GAS DO BRASIL LTDA","u":["5.01"],"c":"Paulínia","g":"Média","s":"Lean + Digitalização","v":120000,"k":9640000},{"p":148,"t":112,"e":"RENER-PRENE INDUSTRIA E COMERCIO LTDA","u":["1.13"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":9680000},{"p":149,"t":112,"e":"M5 PLASTIC INDUSTRIA E COMERCIO DE PECAS AUTOMOTIVAS LTDA","u":["5.01"],"c":"Valinhos","g":"Micro","s":"Digitalização","v":40000,"k":9720000},{"p":150,"t":113,"e":"RODRIGO AUGUSTO MARTINUCHO","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":9760000},{"p":151,"t":114,"e":"TTB INDUSTRIA E COMERCIO DE PRODUTOS METALICOS LTDA","u":["1.06","1.25"],"c":"Diadema","g":"Média","s":"Digitalização","v":120000,"k":9880000},{"p":152,"t":114,"e":"TRESDELTA INDUSTRIA DE PLASTICOS LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":9920000},{"p":153,"t":115,"e":"B & R INDUSTRIA E COMERCIO DE CHICOTES ELETRICOS LTDA","u":["7.91"],"c":"Botucatu","g":"Média","s":"Lean","v":40000,"k":9960000},{"p":154,"t":115,"e":"COLITEX AGROINDUSTRIAL LTDA","u":["8.90"],"c":"Poloni","g":"Média","s":"Lean","v":120000,"k":10080000},{"p":155,"t":116,"e":"JOSE MURILIA BOZZA COMERCIO E INDUSTRIA LTDA EM RECUPERACAO JUDICIAL","u":["1.20","1.08"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":80000,"k":10160000},{"p":156,"t":116,"e":"RINO CARROCERIAS LTDA","u":["1.38"],"c":"Cotia","g":"Pequena","s":"Lean","v":40000,"k":10200000},{"p":157,"t":116,"e":"ANX INDUSTRIA E COMERCIO DE PRODUTOS PLASTICOS LTDA.","u":["5.02"],"c":"Itupeva","g":"Média","s":"Lean","v":80000,"k":10280000},{"p":158,"t":116,"e":"FORSCAP METALURGICA LTDA","u":["5.01"],"c":"Limeira","g":"Pequena","s":"Digitalização","v":40000,"k":10320000},{"p":159,"t":117,"e":"ACE SCHMERSAL ELETROELETRONICA INDUSTRIAL LTDA","u":["5.62","4.01"],"c":"Boituva","g":"Grande","s":"Lean + Digitalização","v":120000,"k":10440000},{"p":160,"t":117,"e":"VEMA ELETROELETRÔNICA LTDA","u":["1.27","1.38"],"c":"Cotia","g":"Média","s":"Digitalização","v":80000,"k":10520000},{"p":161,"t":118,"e":"JANDINOX INDUSTRIA E COMERCIO LTDA","u":["1.27"],"c":"Jandira","g":"Média","s":"Lean + Digitalização","v":80000,"k":10600000},{"p":162,"t":118,"e":"PECPLAS INDUSTRIA DE COMPONENTES PLASTICOS LTDA","u":["1.06"],"c":"Osasco","g":"Pequena","s":"Digitalização","v":40000,"k":10640000},{"p":163,"t":118,"e":"NOVA GERACAO FUNDICAO EM ALUMINIO LTDA","u":["5.01","5.12"],"c":"Hortolândia","g":"Pequena","s":"Digitalização","v":40000,"k":10680000},{"p":164,"t":119,"e":"TOYOTA BOSHOKU DO BRASIL LTDA","u":["4.02"],"c":"Sorocaba","g":"Grande","s":"Digitalização","v":120000,"k":10800000},{"p":165,"t":119,"e":"DOBER INDUSTRIA E COMERCIO DE PECAS DE FIXACAO LIMITADA","u":["3.02","3.03"],"c":"Igaratá","g":"Micro","s":"Lean + Digitalização","v":40000,"k":10840000},{"p":166,"t":120,"e":"GUERRA IMPLEMENTOS RODOVIARIOS S/A","u":["5.01","5.12"],"c":"Sumaré","g":"Grande","s":"Lean","v":120000,"k":10960000},{"p":167,"t":121,"e":"TKS INDUSTRIA E COMERCIO DE PECAS EM FERRO ACO E LIGAS ESPECIAIS LTDA","u":["5.01"],"c":"Pirassununga","g":"Pequena","s":"Lean","v":40000,"k":11000000},{"p":168,"t":122,"e":"STRATUS COMPOSTOS ESTRUTURAIS LTDA","u":["3.02"],"c":"São José dos Campos","g":"Média","s":"Lean + Digitalização","v":80000,"k":11080000},{"p":169,"t":123,"e":"INDUSTRIA DAUD DE BORRACHAS LTDA","u":["5.01"],"c":"Leme","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":11120000},{"p":170,"t":123,"e":"2M PLASTIC INDUSTRIA E COMERCIO DE PECAS AUTOMOTIVAS LTDA","u":["5.01"],"c":"Valinhos","g":"Micro","s":"Digitalização","v":40000,"k":11160000},{"p":171,"t":124,"e":"GUILHERME GONCALVES AVANTE RECONDICIONADORA LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Micro","s":"Lean + Digitalização","v":40000,"k":11200000},{"p":172,"t":124,"e":"MC FREIOS LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":11240000},{"p":173,"t":124,"e":"BRASIL PARAFUSOS LTDA","u":["6.01"],"c":"São Carlos","g":"Micro","s":"Lean","v":40000,"k":11280000},{"p":174,"t":125,"e":"EMBRASTEC INDUSTRIA E COMERCIO DE EQUIPAMENTOS ELETRONICOS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Média","s":"Lean","v":80000,"k":11360000},{"p":175,"t":126,"e":"ADRILEX PECAS ELETRICAS LTDA","u":["6.61","7.90"],"c":"Pederneiras","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":11400000},{"p":176,"t":127,"e":"PFES CARROCERIAS LTDA","u":["6.02"],"c":"Orlândia","g":"Micro","s":"Lean","v":40000,"k":11440000},{"p":177,"t":128,"e":"USIVIN INDUSTRIA E COMERCIO LTDA","u":["5.01"],"c":"Vinhedo","g":"Pequena","s":"Digitalização","v":40000,"k":11480000},{"p":178,"t":129,"e":"ALKA3 INDUSTRIA DE AUTOPECAS LTDA","u":["1.06","1.19"],"c":"Osasco","g":"Média","s":"Digitalização","v":120000,"k":11600000},{"p":179,"t":131,"e":"SECURITY FORCE INDUSTRIA E COMERCIO LTDA","u":["1.24"],"c":"Mogi das Cruzes","g":"Pequena","s":"Lean","v":40000,"k":11640000},{"p":180,"t":131,"e":"KUNST INDUSTRIA DE PLASTICOS DO BRASIL S.A.","u":["3.02"],"c":"São José dos Campos","g":"Média","s":"Lean + Digitalização","v":80000,"k":11720000},{"p":181,"t":132,"e":"TECNOLOGIA DE BOMBAS AUTOMOTIVAS DO BRASIL LTDA","u":["4.02"],"c":"Sorocaba","g":"Média","s":"Digitalização","v":80000,"k":11800000},{"p":182,"t":132,"e":"3HM INDUSTRIA E COMERCIO LTDA","u":["5.01"],"c":"Santa Bárbara D'Oeste","g":"Pequena","s":"Digitalização","v":40000,"k":11840000},{"p":183,"t":132,"e":"R&R COMERCIO, SERVICOS E ADAPTACAO DE VEICULOS ESPECIAIS LTDA","u":["1.27"],"c":"São Paulo","g":"Média","s":"Lean + Digitalização","v":80000,"k":11920000},{"p":184,"t":134,"e":"ELASTEC INDUSTRIA E COMERCIO DE FITAS E ELASTICOS LTDA.","u":["1.24"],"c":"Mogi das Cruzes","g":"Pequena","s":"Lean","v":40000,"k":11960000},{"p":185,"t":134,"e":"JCL INDUSTRIA Е СOMERCIO DE CABOS DE ACO LTDA","u":["1.24"],"c":"Mogi das Cruzes","g":"Média","s":"Lean","v":80000,"k":12040000},{"p":186,"t":134,"e":"BORRACHAS DAUD LTDA","u":["5.01"],"c":"São Paulo","g":"Média","s":"Lean + Digitalização","v":80000,"k":12120000},{"p":187,"t":134,"e":"SILVA RIO PRETO CONEXOES LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":12160000},{"p":188,"t":135,"e":"METALURGICA PRESSMATIC LTDA","u":["1.24"],"c":"Ferraz de Vasconcelos","g":"Pequena","s":"Lean","v":40000,"k":12200000},{"p":189,"t":135,"e":"SEKAI METAIS LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":12240000},{"p":190,"t":136,"e":"PY COMERCIO E SERVICO DE COMPONENTES ELETRONICOS LTDA","u":["4.01"],"c":"São Roque","g":"Pequena","s":"Lean","v":40000,"k":12280000},{"p":191,"t":136,"e":"TOYO COMPONENTES AUTOMOTIVOS LTDA","u":["1.06"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":12320000},{"p":192,"t":136,"e":"ANGRA INDUSTRIA E COMERCIO DE AUTOPECAS LTDA","u":["1.13"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":12360000},{"p":193,"t":136,"e":"L M FREIOS E MANUTENCAO LTDA","u":["6.61","7.90"],"c":"Lençóis Paulista","g":"Micro","s":"Lean + Digitalização","v":40000,"k":12400000},{"p":194,"t":137,"e":"NOTRIA INDUSTRIA E COMERCIO DE FILTROS LTDA","u":["1.27","1.14"],"c":"Barueri","g":"Média","s":"Lean + Digitalização","v":120000,"k":12520000},{"p":195,"t":138,"e":"TRINK AUTOMOTIVE LTDA.","u":["1.27"],"c":"Jandira","g":"Média","s":"Lean + Digitalização","v":80000,"k":12600000},{"p":196,"t":138,"e":"SEMAN INDUSTRIA DE EQUIPAMENTOS INDUSTRIAIS LTDA","u":["1.20","1.25"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":80000,"k":12680000},{"p":197,"t":138,"e":"TRALI INDUSTRIA E COMERCIO LTDA","u":["1.03"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":12720000},{"p":198,"t":139,"e":"AUTOCAM DO BRASIL USINAGEM LTDA. P3","u":["5.92"],"c":"São João da Boa Vista","g":"Média","s":"Lean","v":80000,"k":12800000},{"p":199,"t":139,"e":"TANKAR EQUIPAMENTOS RODOVIARIOS LTDA","u":["5.01"],"c":"Limeira","g":"Pequena","s":"Lean","v":40000,"k":12840000},{"p":200,"t":140,"e":"FINOTTI & SCATAMBURLO LTDA.","u":["6.61","7.90"],"c":"Jaú","g":"Média","s":"Lean + Digitalização","v":120000,"k":12960000},{"p":201,"t":141,"e":"BUFALO COMERCIO DE VIDROS LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":13000000},{"p":202,"t":142,"e":"APLASTEC PLASTICOS TECNICOS LTDA","u":["1.02","1.28"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":13040000},{"p":203,"t":144,"e":"CARLOS EDUARDO DINIZ","u":["6.61","7.90"],"c":"Pederneiras","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":13080000},{"p":204,"t":146,"e":"CAIO – INDUSCAR INDUSTRIA E COMERCIO DE CARROCERIAS LTDA","u":["7.91"],"c":"Botucatu","g":"Grande","s":"Lean","v":120000,"k":13200000},{"p":205,"t":146,"e":"ABA CORRENTES E ENGRENAGENS LTDA","u":["6.02"],"c":"Batatais","g":"Média","s":"Lean","v":80000,"k":13280000},{"p":206,"t":146,"e":"UNIVEL INDÚSTRIA METALÚRGICA LTDA","u":["1.27","1.19"],"c":"Osasco","g":"Média","s":"Digitalização","v":80000,"k":13360000},{"p":207,"t":148,"e":"LIDER PAINEIS E QUADROS ELETRICOS LTDA","u":["8.01"],"c":"Catanduva","g":"Pequena","s":"Lean","v":40000,"k":13400000},{"p":208,"t":150,"e":"CARMONA IMPLEMENTOS RODOVIARIOS LTDA","u":["8.90"],"c":"Votuporanga","g":"Pequena","s":"Lean","v":40000,"k":13440000},{"p":209,"t":155,"e":"POWER TEC PECAS E SERVICOS EQUIPAMENTOS HIDRAULICOS LTDA","u":["1.38"],"c":"Cotia","g":"Pequena","s":"Lean","v":40000,"k":13480000},{"p":210,"t":155,"e":"INDUSTRIA MECANICA BORZAN LTDA","u":["1.08","1.20"],"c":"São Paulo","g":"Média","s":"Lean","v":80000,"k":13560000},{"p":211,"t":156,"e":"JOMAFER INDUSTRIA E COMERCIO LTDA","u":["1.28"],"c":"Guarulhos","g":"Média","s":"Lean","v":80000,"k":13640000},{"p":212,"t":157,"e":"WORLD CENTER COMERCIO IMPORTACAO E EXPORTACAO LTDA","u":["1.23"],"c":"São Caetano do Sul","g":"Média","s":"Lean + Digitalização","v":80000,"k":13720000},{"p":213,"t":157,"e":"EIXODOBRE PECAS PARA IMPLEMENTOS RODOVIARIOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":13760000},{"p":214,"t":159,"e":"RONALDO A F LEITE CAPOTAS","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":13800000},{"p":215,"t":160,"e":"CARROCERIAS NOGUEIRA LTDA","u":["9.14"],"c":"Regente Feijó","g":"Micro","s":"Lean","v":40000,"k":13840000},{"p":216,"t":161,"e":"SEC COMERCIO DE VIDROS DE SEGURANCA E SERVICOS LTDА","u":["1.24"],"c":"Mogi das Cruzes","g":"Micro","s":"Lean","v":40000,"k":13880000},{"p":217,"t":161,"e":"FIXO CALDEIRARIA IRRIGACAO E MANUTENCAO INDUSTRIAL LTDA","u":["8.01"],"c":"Severínia","g":"Micro","s":"Lean","v":40000,"k":13920000},{"p":218,"t":162,"e":"IL EQUIPAMENTOS RODOVIARIOS LTDA","u":["8.01"],"c":"Barretos","g":"Micro","s":"Lean","v":40000,"k":13960000},{"p":219,"t":163,"e":"ZINCAGEM MARTINS LTDA","u":["1.09","1.06","1.25"],"c":"Diadema","g":"Média","s":"Lean + Digitalização","v":80000,"k":14040000},{"p":220,"t":163,"e":"CINPAL COMPANHIA INDUSTRIAL DE PECAS PARA AUTOMOVEIS","u":["1.27"],"c":"Taboão da Serra","g":"Média","s":"Digitalização","v":120000,"k":14160000},{"p":221,"t":163,"e":"ZF PASSIVE SAFETY SYSTEMS BRAZIL LTDA","u":["5.01"],"c":"Limeira","g":"Grande","s":"Lean","v":120000,"k":14280000},{"p":222,"t":164,"e":"SPA TURBO COMERCIAL, IMPORTADORA E EXPORTADORA LTDA 64764111000238","u":["6.02"],"c":"Batatais","g":"Pequena","s":"Lean","v":40000,"k":14320000},{"p":223,"t":165,"e":"JUNIOR FLEX INDUSTRIA E PARTICIPACOES LTDA","u":["1.27"],"c":"Araçariguama","g":"Média","s":"Lean + Digitalização","v":80000,"k":14400000},{"p":224,"t":166,"e":"FRATINI - CORTE E DOBRA DE CHAPAS LTDA","u":["9.14"],"c":"Adamantina","g":"Pequena","s":"Lean","v":40000,"k":14440000},{"p":225,"t":166,"e":"ZPFILTER INDUSTRIA E COMÉRCIO LTDA","u":["4.02"],"c":"Sorocaba","g":"Micro","s":"Lean","v":40000,"k":14480000},{"p":226,"t":166,"e":"ZIONPARTS PECAS E ACESSORIOS AUTOMOTIVOS LTDA","u":["8.01"],"c":"Bady Bassitt","g":"Micro","s":"Lean","v":40000,"k":14520000},{"p":227,"t":166,"e":"IBATANQUES INDUSTRIAL DE IMPLEMENTOS RODOVIARIOS LTDA","u":["6.01"],"c":"Ibaté","g":"Pequena","s":"Lean","v":40000,"k":14560000},{"p":228,"t":167,"e":"UNIONREBIT INDUSTRIA E COMERCIO DE ARTEFATOS DE METAIS LTDA","u":["1.23"],"c":"São Caetano do Sul","g":"Média","s":"Lean","v":80000,"k":14640000},{"p":229,"t":168,"e":"ITM LATIN AMERICA INDUSTRIA DE PECAS PARA TRATORES LTDA.","u":["1.06","5.91"],"c":"Atibaia","g":"Grande","s":"Lean + Digitalização","v":120000,"k":14760000},{"p":230,"t":169,"e":"PROTEC INDUSTRIA E COMERCIO DE PECAS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":14800000},{"p":231,"t":169,"e":"AUTOBRAS USINAGEM & COMPONENTES LTDA","u":["1.28"],"c":"Guarulhos","g":"Média","s":"Lean","v":80000,"k":14880000},{"p":232,"t":169,"e":"INDUSTRIAS ARTEB LTDA -","u":["1.20","1.25"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":120000,"k":15000000},{"p":233,"t":170,"e":"CONSTELACAO COMERCIO E INDUSTRIA DE ARRUELAS LTDA","u":["1.24"],"c":"Ferraz de Vasconcelos","g":"Pequena","s":"Lean","v":40000,"k":15040000},{"p":234,"t":170,"e":"ENERBRAX - ACUMULADORES LTDA.","u":["7.01","6.02"],"c":"Bauru","g":"Média","s":"Lean","v":80000,"k":15120000},{"p":235,"t":170,"e":"FAPEMA INDUSTRIA MECANICA LTDA","u":["1.27"],"c":"Santana de Parnaíba","g":"Pequena","s":"Digitalização","v":40000,"k":15160000},{"p":236,"t":171,"e":"G8 MOTOR SPORT LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":15200000},{"p":237,"t":171,"e":"SULBRAS MOLDES E PLASTICOS LTDA","u":["4.01"],"c":"Salto","g":"Média","s":"Lean","v":80000,"k":15280000},{"p":238,"t":171,"e":"ROMANAPLAST INDUSTRIA E COMERCIO LTDA","u":["1.23"],"c":"Ribeirão Pires","g":"Pequena","s":"Lean","v":40000,"k":15320000},{"p":239,"t":172,"e":"REDUTO - EQUIPAMENTOS RODOVIARIOS LTDA","u":["6.02"],"c":"Cravinhos","g":"Pequena","s":"Lean","v":40000,"k":15360000},{"p":240,"t":172,"e":"EVOLUTTION AUTOMOTIVE INDUSTRIA & COMERCIO DE FREIOS LTDA","u":["6.01","5.07"],"c":"Americana","g":"Média","s":"Digitalização","v":80000,"k":15440000},{"p":241,"t":173,"e":"ABNER DE CASTRO SILVA USINAGEM E MANUTENCAO","u":["1.24"],"c":"Itaquaquecetuba","g":"Micro","s":"Lean","v":40000,"k":15480000},{"p":242,"t":173,"e":"PMK EQUIPAMENTOS VEICULARES LTDA","u":["1.38","1.06"],"c":"Embu-Guaçu","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":15520000},{"p":243,"t":174,"e":"CRG SOLUCOES INDUSTRIAIS LTDA","u":["3.02"],"c":"São José dos Campos","g":"Pequena","s":"Lean","v":40000,"k":15560000},{"p":244,"t":174,"e":"INDUSTRIA E COMERCIO DE CAPOTAS JEM LTDA","u":["9.14"],"c":"Presidente Prudente","g":"Micro","s":"Lean","v":40000,"k":15600000},{"p":245,"t":175,"e":"CICLOMADE - INDUSTRIA E COMERCIO DE ESPUMAS LTDA","u":["6.62"],"c":"Jaboticabal","g":"Micro","s":"Lean","v":40000,"k":15640000},{"p":246,"t":175,"e":"I.B.T - INDUSTRIAL DE BORRACHAS TECNICAS LTDA","u":["1.23"],"c":"São Caetano do Sul","g":"Média","s":"Lean","v":80000,"k":15720000},{"p":247,"t":176,"e":"IGLESIAS MODELACAO E FUNDICAO LTDA","u":["1.23"],"c":"Mauá","g":"Micro","s":"Lean","v":40000,"k":15760000},{"p":248,"t":177,"e":"CTEC FABRICACAO DE ARTEFATOS DE METAIS LTDA","u":["7.91"],"c":"Anhembi","g":"Média","s":"Lean","v":80000,"k":15840000},{"p":249,"t":177,"e":"S. Q. A. INDUSTRIAL LTDA","u":["1.23"],"c":"Santo André","g":"Pequena","s":"Lean","v":40000,"k":15880000},{"p":250,"t":177,"e":"WEBER CARROCERIAS LTDA","u":["8.01"],"c":"Severínia","g":"Micro","s":"Lean","v":40000,"k":15920000},{"p":251,"t":178,"e":"DIAMETRAL INDUSTRIAL LTDA","u":["1.06","1.13"],"c":"São Paulo","g":"Média","s":"Digitalização","v":80000,"k":16000000},{"p":252,"t":178,"e":"MKF MODELACAO E FUNDICAO LTDA","u":["1.23"],"c":"Mauá","g":"Micro","s":"Lean","v":40000,"k":16040000},{"p":253,"t":179,"e":"ETESSADAHNIAR INDUSTRIA E COMERCIO DE AUTO PECAS LTDA","u":["5.68","5.01"],"c":"Itatiba","g":"Média","s":"Lean + Digitalização","v":120000,"k":16160000},{"p":254,"t":179,"e":"TEC GLASS COMPONENTES INDUSTRIAIS LTDA","u":["7.91"],"c":"Botucatu","g":"Média","s":"Lean","v":80000,"k":16240000},{"p":255,"t":179,"e":"ALAN FRANCISCO VAZ","u":["6.02"],"c":"Batatais","g":"Pequena","s":"Lean","v":40000,"k":16280000},{"p":256,"t":179,"e":"ROFREIOS INDUSTRIA E COMERCIO","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":16320000},{"p":257,"t":179,"e":"RUCHI INDUSTRIA E COMERCIO DE PECAS E ACESSORIOS AUTOMOTIVOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":16360000},{"p":258,"t":180,"e":"COMPONENTES AUTOMOTIVOS PAVAN LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":16400000},{"p":259,"t":180,"e":"HORTOFOX INDUSTRIA E COMERCIO LTDA","u":["5.01","5.12"],"c":"Hortolândia","g":"Micro","s":"Lean","v":40000,"k":16440000},{"p":260,"t":181,"e":"FORCE MAQUINAS E EQUIPAMENTOS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":16480000},{"p":261,"t":181,"e":"SAO PAULO INDUSTRIA E COMERCIO DE MOLAS LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":16520000},{"p":262,"t":182,"e":"M A SERVICOS DE USINAGEM LTDA.","u":["5.68"],"c":"Amparo","g":"Pequena","s":"Lean","v":40000,"k":16560000},{"p":263,"t":184,"e":"COMTEC COMPOSTOS DE SEGURANÇA LTDA","u":["5.68"],"c":"Campo Limpo Paulista","g":"Média","s":"Lean","v":120000,"k":16680000},{"p":264,"t":184,"e":"AUTOPOLI INDUSTRIA E COMERCIO LTDA","u":["3.02","3.03"],"c":"Guararema","g":"Média","s":"Lean + Digitalização","v":80000,"k":16760000},{"p":265,"t":184,"e":"INDUSTRIAL E COMERCIO DE AUTOPECAS VANNUCCI LTDA","u":["1.27"],"c":"Santana de Parnaíba","g":"Pequena","s":"Lean","v":40000,"k":16800000},{"p":266,"t":186,"e":"AG PNEUS RACING LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":16840000},{"p":267,"t":186,"e":"G C S ARTEFATOS DE METAL LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":16880000},{"p":268,"t":187,"e":"JOHNSON ELECTRIC AUTOMOTIVO BRASIL LTDA","u":["1.28"],"c":"Arujá","g":"Média","s":"Lean","v":120000,"k":17000000},{"p":269,"t":187,"e":"SPA TURBO COMERCIAL, IMPORTADORA E EXPORTADORA LTDA 64764111000319","u":["6.02"],"c":"Batatais","g":"Pequena","s":"Lean","v":40000,"k":17040000},{"p":270,"t":189,"e":"ELMA ELETROMETALURGICA LTDA","u":["3.02"],"c":"São José dos Campos","g":"Média","s":"Digitalização","v":40000,"k":17080000},{"p":271,"t":189,"e":"MULTI-FRIO COMERCIO DE REFRIGERACAO LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Média","s":"Lean","v":80000,"k":17160000},{"p":272,"t":189,"e":"RODAS LIRA COMERCIO E SERVICO LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":17200000},{"p":273,"t":189,"e":"RELBER COMERCIO E INDUSTRIA LTDA","u":["1.13"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":17240000},{"p":274,"t":190,"e":"MODELAÇÃO STILUS","u":["6.62"],"c":"Jaboticabal","g":"Micro","s":"Lean","v":40000,"k":17280000},{"p":275,"t":191,"e":"EDER ANTONIO BRAGA USINAGEM","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":17320000},{"p":276,"t":191,"e":"HSMV INDUSTRIA DE PLASTICOS LTDA","u":["3.02"],"c":"São José dos Campos","g":"Média","s":"Lean + Digitalização","v":80000,"k":17400000},{"p":277,"t":192,"e":"SWK ESCAPAMENTOS AUTOMOTIVOS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":17440000},{"p":278,"t":192,"e":"ECOLOGICA INDUSTRIA E COMERCIO DE PRODUTOS SUSTENTAVEIS LTDA","u":["6.02"],"c":"Jaboticabal","g":"Micro","s":"Lean","v":40000,"k":17480000},{"p":279,"t":193,"e":"SOUZINNE EQUIPAMENTOS PARA BOMBEAMENTO DE CONCRETO LTDA","u":["5.68"],"c":"Socorro","g":"Micro","s":"Lean","v":40000,"k":17520000},{"p":280,"t":193,"e":"MCA BANCOS & REVESTIMENTOS AUTOMOTIVOS LTDA","u":["4.01"],"c":"Porto Feliz","g":"Pequena","s":"Lean","v":40000,"k":17560000},{"p":281,"t":194,"e":"EVEREST PRODUTOS E SERVICOS LTDA","u":["6.01"],"c":"São Carlos","g":"Pequena","s":"Lean","v":40000,"k":17600000},{"p":282,"t":195,"e":"F V OLIVEIRA SOLUCOES INDUSTRIAIS","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":17640000},{"p":283,"t":195,"e":"JR PECAS AUTOMOTIVAS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":17680000},{"p":284,"t":195,"e":"MARCELINO DE PAULA LTDA","u":["4.01"],"c":"São Roque","g":"Pequena","s":"Lean","v":40000,"k":17720000},{"p":285,"t":196,"e":"Rp Tudogaz Comercio, Projetos e Instalacoes de Equipamentos LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Média","s":"Lean","v":80000,"k":17800000},{"p":286,"t":199,"e":"ALVORADA USINAGEM E FERRAMENTARIA LTDA","u":["1.27"],"c":"Jandira","g":"Micro","s":"Digitalização","v":40000,"k":17840000},{"p":287,"t":200,"e":"LUIZ EDUARDO DE ARRUDA","u":["6.02"],"c":"Batatais","g":"Micro","s":"Lean","v":40000,"k":17880000},{"p":288,"t":200,"e":"F.J.F. PECAS BATATAIS LTDA","u":["6.02"],"c":"Batatais","g":"Micro","s":"Lean","v":40000,"k":17920000},{"p":289,"t":202,"e":"FABIO MARTINS VAZ","u":["6.02"],"c":"Batatais","g":"Pequena","s":"Lean","v":40000,"k":17960000},{"p":290,"t":204,"e":"TECUMSEH DO BRASIL LTDA","u":["6.01"],"c":"São Carlos","g":"Média","s":"Lean","v":80000,"k":18040000},{"p":291,"t":205,"e":"MFP AUTO PARTS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":18080000},{"p":292,"t":205,"e":"M. S. AURICCHIO ETIQUETAS AUTOMACAO COMERCIAL LTDA","u":[],"c":"Jundiaí","g":"Pequena","s":"Lean","v":40000,"k":18120000},{"p":293,"t":207,"e":"AMINO QUIMICA LTDA","u":["1.06","1.25"],"c":"Diadema","g":"Média","s":"Digitalização","v":120000,"k":18240000},{"p":294,"t":208,"e":"AG COMPONENTES RACING INDUSTRIAIS LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":18280000},{"p":295,"t":210,"e":"DRF ETIQUETAS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":18320000},{"p":296,"t":210,"e":"GBC GRUPO BRASILEIRO DE CILINDRO LTDA","u":["4.01"],"c":"Cabreúva","g":"Pequena","s":"Lean","v":40000,"k":18360000},{"p":297,"t":210,"e":"VPOL EQUIPAMENTOS HIDRAULICOS LTDA","u":["1.27","1.38"],"c":"Vargem Grande Paulista","g":"Média","s":"Lean + Digitalização","v":80000,"k":18440000},{"p":298,"t":211,"e":"RP TUDOGAZ COMERCIO, PROJETOS E INSTALACAO DE EQUIPAMENTOS","u":["6.02"],"c":"Ribeirão Preto","g":"Média","s":"Lean","v":80000,"k":18520000},{"p":299,"t":211,"e":"BITZER COMPRESSORES LTDA","u":["1.38","1.06"],"c":"Cotia","g":"Média","s":"Lean + Digitalização","v":120000,"k":18640000},{"p":300,"t":211,"e":"R.D.K INDUSTRIA E COMERCIO DE MOLAS LTDA","u":["3.02","3.03"],"c":"Igaratá","g":"Média","s":"Lean + Digitalização","v":80000,"k":18720000},{"p":301,"t":211,"e":"VEDAGOL SISTEMAS EM VEDACOES LTDA","u":["8.01"],"c":"Guapiaçu","g":"Pequena","s":"Lean","v":40000,"k":18760000},{"p":302,"t":213,"e":"ALBERICO FERRARA","u":["9.14"],"c":"Parapuã","g":"Micro","s":"Lean","v":40000,"k":18800000},{"p":303,"t":213,"e":"FABIO GERALDI DE FREITAS","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":18840000},{"p":304,"t":213,"e":"AUTOMETAL SBC INJECAO E PINTURA DE PLASTICOS LTDA","u":["1.20","1.25"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":120000,"k":18960000},{"p":305,"t":213,"e":"FUERZA - EQUIPAMENTOS RODOVIARIOS LTDA","u":["1.28"],"c":"Taubaté","g":"Pequena","s":"Lean","v":40000,"k":19000000},{"p":306,"t":216,"e":"S. C. INDUSTRIA E COMERCIO LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":19040000},{"p":307,"t":216,"e":"INDUSTRIA METALURGICA LIPOS LTDA","u":["1.06"],"c":"Mauá","g":"Média","s":"Lean + Digitalização","v":80000,"k":19120000},{"p":308,"t":217,"e":"EMBRASTEC INDUSTRIA E COMERCIO DE EQUIPAMENTOS ELETRONICOS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Média","s":"Lean","v":80000,"k":19200000},{"p":309,"t":217,"e":"TECPLAS PLASTICOS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":19240000},{"p":310,"t":218,"e":"ANA BEATRIZ CARREIRA ESCAPAMENTOS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":19280000},{"p":311,"t":219,"e":"BORRACHAS S. K. LTDA","u":["8.90"],"c":"Tanabi","g":"Média","s":"Lean","v":120000,"k":19400000},{"p":312,"t":221,"e":"FUMACA INSTRUMENTOS DE PRECISAO LTDA","u":["1.09","1.06"],"c":"São Paulo","g":"Média","s":"Lean + Digitalização","v":80000,"k":19480000},{"p":313,"t":221,"e":"SS USINAGEM E CALDERARIA LTDA","u":["6.02"],"c":"Orlândia","g":"Pequena","s":"Lean","v":40000,"k":19520000},{"p":314,"t":221,"e":"IVAN RENATO GENEROSO","u":["6.01"],"c":"São Carlos","g":"Micro","s":"Lean","v":40000,"k":19560000},{"p":315,"t":222,"e":"MG BOR - INDUSTRIA, COMERCIO E VULCANIZACOES LTDA","u":["1.13"],"c":"São Paulo","g":"Micro","s":"Lean","v":40000,"k":19600000},{"p":316,"t":222,"e":"TRAPANI METALURGICA LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":19640000},{"p":317,"t":222,"e":"ALC USINAGEM LTDA","u":["6.02"],"c":"Batatais","g":"Micro","s":"Lean","v":40000,"k":19680000},{"p":318,"t":223,"e":"FABIO JARDIM RIBEIRO","u":["6.01"],"c":"Pirassununga","g":"Micro","s":"Lean","v":40000,"k":19720000},{"p":319,"t":224,"e":"TBC AUTO PECAS LTDA","u":["6.02"],"c":"Cravinhos","g":"Micro","s":"Lean","v":40000,"k":19760000},{"p":320,"t":224,"e":"ULTRA INDUSTRIA E COMERCIO LTDA","u":["1.28"],"c":"Guarulhos","g":"Média","s":"Lean","v":80000,"k":19840000},{"p":321,"t":224,"e":"FINESTRA-CAR PECAS E ACESSORIOS LTDA","u":["1.13"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":19880000},{"p":322,"t":224,"e":"TRUCK SERVICE ALVIZI LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":19920000},{"p":323,"t":224,"e":"CR FABRICACAO DE MOTORES ELETRICOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":19960000},{"p":324,"t":225,"e":"LUGUEZ INDUSTRIA E COMERCIO DE ESPUMAS TECNICAS LTDA","u":["1.28"],"c":"Guarulhos","g":"Média","s":"Lean","v":80000,"k":20040000},{"p":325,"t":225,"e":"MAGNA CAPOTAS LTDA","u":["8.01"],"c":"São José do Rio Preto","g":"Micro","s":"Lean","v":40000,"k":20080000},{"p":326,"t":226,"e":"W K SOLUCOES INDUSTRIAIS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":20120000},{"p":327,"t":226,"e":"BRASAR TRATAMENTO TERMICO LTDA.","u":["6.01"],"c":"São Carlos","g":"Pequena","s":"Lean","v":40000,"k":20160000},{"p":328,"t":227,"e":"NASAA COMERCIAL, IMPORTACAO E EXPORTACAO LTDA","u":["1.09","1.06"],"c":"São Paulo","g":"Pequena","s":"Digitalização","v":40000,"k":20200000},{"p":329,"t":227,"e":"SX INDUSTRIAL DE PLASTICOS LTDA","u":["1.06","1.20"],"c":"São Bernardo do Campo","g":"Média","s":"Digitalização","v":80000,"k":20280000},{"p":330,"t":228,"e":"TECCER INDUSTRIA E COMERCIO DE PROD CERAMICOS LTDA","u":["6.02"],"c":"Cravinhos","g":"Micro","s":"Lean","v":40000,"k":20320000},{"p":331,"t":229,"e":"JHS FLEX INDUSTRIA E COMERCIO DE ESPUMAS LTDA","u":["1.24"],"c":"Mogi das Cruzes","g":"Micro","s":"Lean","v":40000,"k":20360000},{"p":332,"t":230,"e":"WMS FUNDICAO LTDA","u":["6.02"],"c":"Batatais","g":"Micro","s":"Lean","v":40000,"k":20400000},{"p":333,"t":230,"e":"POLICROM GALVANOTECNICA LTDA","u":["5.01","5.03"],"c":"Piracicaba","g":"Pequena","s":"Lean","v":40000,"k":20440000},{"p":334,"t":230,"e":"CAPOTAS BRASIL LTDA","u":["9.14"],"c":"Presidente Prudente","g":"Micro","s":"Lean","v":40000,"k":20480000},{"p":335,"t":230,"e":"CAT TRON TECNOLOGIA E METALURGICA LTDA","u":["8.01"],"c":"Catanduva","g":"Micro","s":"Lean","v":40000,"k":20520000},{"p":336,"t":232,"e":"SOLIDA GALVANOPLASTIA LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":20560000},{"p":337,"t":234,"e":"MOINHO YPIRANGA INDUSTRIA DE MAQUINAS LTDA","u":["1.09","1.25"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":80000,"k":20640000},{"p":338,"t":234,"e":"CELSO TRISTAO DE CAMARGO & CIA LTDA","u":["4.01"],"c":"Porto Feliz","g":"Média","s":"Lean","v":80000,"k":20720000},{"p":339,"t":237,"e":"BRAGGION & VILACA LTDA.","u":["1.06"],"c":"Bragança Paulista","g":"Pequena","s":"Digitalização","v":40000,"k":20760000},{"p":340,"t":238,"e":"PRIMUSCART EMBALAGENS ESPECIAIS LTDA","u":["1.06","1.24"],"c":"Mogi das Cruzes","g":"Média","s":"Digitalização","v":80000,"k":20840000},{"p":341,"t":238,"e":"CLF PLASTICOS LTDA","u":["1.38","1.06"],"c":"Embu-Guaçu","g":"Média","s":"Lean + Digitalização","v":80000,"k":20920000},{"p":342,"t":238,"e":"RESINCAFFER DE POMPEIA LTDA","u":["9.27","6.04"],"c":"Pompéia","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":20960000},{"p":343,"t":239,"e":"GUILHERME OSÓRIO POMPOLO POLIM ME","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":21000000},{"p":344,"t":241,"e":"HEJA USINAGEM LTDA","u":["6.02"],"c":"Serrana","g":"Micro","s":"Lean","v":40000,"k":21040000},{"p":345,"t":242,"e":"RANDAZZO ALUMINIO LTDA","u":["4.02"],"c":"Sorocaba","g":"Micro","s":"Lean","v":40000,"k":21080000},{"p":346,"t":242,"e":"RODAGAS DO BRASIL - SISTEMAS A GAS LTDA.","u":["1.13"],"c":"São Paulo","g":"Média","s":"Lean","v":80000,"k":21160000},{"p":347,"t":242,"e":"BUENO & ARLI -LTDA","u":["6.01"],"c":"Leme","g":"Micro","s":"Lean","v":40000,"k":21200000},{"p":348,"t":244,"e":"ASO SHOP INDUSTRIA E COMERCIO LTDA","u":["8.01"],"c":"Catanduva","g":"Micro","s":"Lean","v":40000,"k":21240000},{"p":349,"t":245,"e":"LBS SERVICOS E COMERCIO LTDA","u":["1.28","1.02"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":21280000},{"p":350,"t":245,"e":"J. O. MAXIMO TRANSPORTES","u":["6.01"],"c":"Porto Ferreira","g":"Micro","s":"Lean","v":40000,"k":21320000},{"p":351,"t":246,"e":"PELZER DA BAHIA LTDA","u":["3.02","3.01"],"c":"Taubaté","g":"Média","s":"Lean + Digitalização","v":120000,"k":21440000},{"p":352,"t":246,"e":"RIB FRIO REFRIGERACAO LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":21480000},{"p":353,"t":247,"e":"GTNOX INDUSTRIA DE ACESSORIOS AUTOMOTIVOS LTDA","u":["6.04","9.90"],"c":"Penápolis","g":"Média","s":"Lean + Digitalização","v":80000,"k":21560000},{"p":354,"t":247,"e":"REBOCAR INDUSTRIAL LTDA","u":["6.01"],"c":"Matão","g":"Pequena","s":"Lean","v":40000,"k":21600000},{"p":355,"t":249,"e":"LUFEWARE INDUSTRIA E COMERCIO DE PRODUTOS PLASTICOS LTDA","u":["1.09","1.25"],"c":"Diadema","g":"Micro","s":"Lean","v":40000,"k":21640000},{"p":356,"t":249,"e":"R.F.D. - PLASTIC INDUSTRIA E COMERCIO DE PLASTICOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":21680000},{"p":357,"t":251,"e":"M.G.S. FERRAMENTARIA INDUSTRIA E COMERCIO DE MOLDES LTDA","u":["1.06"],"c":"São Paulo","g":"Micro","s":"Digitalização","v":40000,"k":21720000},{"p":358,"t":252,"e":"METALWAC INDUSTRIA METALURGICA LTDA. - E. P. P.","u":["1.25","1.20"],"c":"Diadema","g":"Média","s":"Lean","v":80000,"k":21800000},{"p":359,"t":253,"e":"ADED E-COMMERCE LTDA","u":["6.02"],"c":"Batatais","g":"Micro","s":"Lean","v":40000,"k":21840000},{"p":360,"t":253,"e":"AMTEC USINAGEM LTDA","u":["1.06","1.13"],"c":"São Paulo","g":"Média","s":"Digitalização","v":80000,"k":21920000},{"p":361,"t":254,"e":"RIC AUTOMOTIVE IND.DE PECAS AUTOMOTIVAS LTDA","u":["1.06"],"c":"São Paulo","g":"Pequena","s":"Digitalização","v":40000,"k":21960000},{"p":362,"t":254,"e":"WFA INDUSTRIA E COMERCIO DE REBITES LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":22000000},{"p":363,"t":257,"e":"CARROCERIAS L A TORINO LTDA","u":["6.02"],"c":"Cravinhos","g":"Pequena","s":"Lean","v":40000,"k":22040000},{"p":364,"t":258,"e":"OTTIMUS INDUSTRIA DE AUTO PECAS LTDA","u":["9.14"],"c":"Parapuã","g":"Pequena","s":"Lean","v":40000,"k":22080000},{"p":365,"t":260,"e":"PEX CASA E FERRAMENTAS.COM LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":22120000},{"p":366,"t":261,"e":"TAPE EXPRESS COMERCIO DE PLASTICOS LTDA","u":["1.02","1.28"],"c":"São Paulo","g":"Micro","s":"Lean","v":40000,"k":22160000},{"p":367,"t":261,"e":"SPEED CAR INDUSTRIA, COMERCIO, EXPORTACAO E IMPORTACAO DE RODAS LTDA","u":["6.01","5.07"],"c":"Nova Odessa","g":"Pequena","s":"Lean","v":40000,"k":22200000},{"p":368,"t":262,"e":"IGP SOLUCOES AUTOMOTIVAS LTDA","u":["1.06","1.25"],"c":"Diadema","g":"Média","s":"Lean + Digitalização","v":80000,"k":22280000},{"p":369,"t":263,"e":"LEFEL SUSPENSÕES LTDA","u":["9.27","6.04"],"c":"Garça","g":"Micro","s":"Lean + Digitalização","v":40000,"k":22320000},{"p":370,"t":264,"e":"SAIDTEC INDUSTRIA DE MAQUINAS E EQUIPAMENTOS INDUSTRIAIS LTDA.","u":["6.02"],"c":"Serrana","g":"Pequena","s":"Lean","v":40000,"k":22360000},{"p":371,"t":264,"e":"SF SISTEMA DE FIXACAO LTDA.","u":["1.06"],"c":"São Paulo","g":"Pequena","s":"Digitalização","v":40000,"k":22400000},{"p":372,"t":265,"e":"TECNOPACKAGING IMPORTACAO E EXPORTACAO LTDA","u":["3.02","3.60"],"c":"Pindamonhangaba","g":"Média","s":"Lean + Digitalização","v":80000,"k":22480000},{"p":373,"t":266,"e":"VOUGA METALPLAST INDUSTRIA E COMERCIO LTDA","u":["1.13"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":22520000},{"p":374,"t":266,"e":"RELEMIX ELETRONICA LTDA","u":["1.28"],"c":"Mairiporã","g":"Pequena","s":"Lean","v":40000,"k":22560000},{"p":375,"t":267,"e":"MODELAÇÃO ARTE REAL","u":["6.62"],"c":"Jaboticabal","g":"Micro","s":"Lean","v":40000,"k":22600000},{"p":376,"t":269,"e":"EVOLUTTION TECNOLOGIA EM USINAGEM LTDA","u":["6.01","5.07"],"c":"Americana","g":"Pequena","s":"Digitalização","v":40000,"k":22640000},{"p":377,"t":270,"e":"METALURGICA REISAM INDUSTRIA E COMERCIO LTDA","u":["3.02","3.03"],"c":"Guararema","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":22680000},{"p":378,"t":274,"e":"SP BENEFICIAMENTO E COMERCIO DE BORRACHAS LTDA","u":[],"c":"Votuporanga","g":"Média","s":"Não identificado","v":80000,"k":22760000},{"p":379,"t":275,"e":"INOXTANK EQUIPAMENTOS RODOVIARIOS E INDUSTRIAIS LTDA","u":["6.01"],"c":"Ibaté","g":"Micro","s":"Lean","v":40000,"k":22800000},{"p":380,"t":277,"e":"DOMA COMERCIO E SERVICOS DE ACESSORIOS PARA VEICULOS AUTOMOTORES LTDA","u":["1.24"],"c":"Itaquaquecetuba","g":"Micro","s":"Lean","v":40000,"k":22840000},{"p":381,"t":280,"e":"JASKI INDUSTRIA METALURGICA DE FIXADORES LTDA","u":["5.68"],"c":"Caieiras","g":"Média","s":"Lean","v":80000,"k":22920000},{"p":382,"t":282,"e":"LBS TRUCK LTDA","u":["1.02","1.28"],"c":"São Paulo","g":"Micro","s":"Lean","v":40000,"k":22960000},{"p":383,"t":286,"e":"RAFAEL PASCOAL INDUSTRIA E COMERCIO DE FERRAMENTAS LTDA","u":["1.24"],"c":"Suzano","g":"Micro","s":"Lean","v":40000,"k":23000000},{"p":384,"t":286,"e":"EURO MACHINE EQUIPAMENTOS LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Micro","s":"Lean","v":40000,"k":23040000},{"p":385,"t":288,"e":"VOLCANO INDUSTRIA, COMERCIO E IMPORTACAO DE RODAS LTDA","u":["6.01","5.07"],"c":"Nova Odessa","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":23080000},{"p":386,"t":290,"e":"BRASIL CAPOTAS RIBEIRAO PRETO LTDA","u":["6.02"],"c":"Ribeirão Preto","g":"Pequena","s":"Lean","v":40000,"k":23120000},{"p":387,"t":292,"e":"IMAGO MANUFACTURING LTDA","u":["3.02"],"c":"São José dos Campos","g":"Pequena","s":"Lean + Digitalização","v":40000,"k":23160000},{"p":388,"t":293,"e":"ARES PLASTIC LTDA","u":["1.06"],"c":"São Paulo","g":"Pequena","s":"Digitalização","v":40000,"k":23200000},{"p":389,"t":295,"e":"JEOAS INDUSTRIA E COMERCIO LTDA","u":["1.06","1.13"],"c":"São Paulo","g":"Micro","s":"Digitalização","v":40000,"k":23240000},{"p":390,"t":299,"e":"A.E.GUEDES COMERCIO DE PECAS LTDA","u":["7.01"],"c":"Bauru","g":"Média","s":"Lean","v":80000,"k":23320000},{"p":391,"t":303,"e":"GRAVURART ADESIVOS PLACAS E BRINDES LTDA.","u":["1.06","1.20"],"c":"São Bernardo do Campo","g":"Pequena","s":"Digitalização","v":40000,"k":23360000},{"p":392,"t":304,"e":"MERCURIO INDUSTRIA E COMERCIO DE MOTOPECAS LTDA","u":["6.01"],"c":"Monte Alto","g":"Micro","s":"Lean","v":40000,"k":23400000},{"p":393,"t":305,"e":"PLAST-CAR INDUSTRIA E COMERCIO DE PLASTICOS E MOLDES LTDA","u":["1.02","1.28"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":23440000},{"p":394,"t":306,"e":"INDUSTRIAS OBLEM LTDA","u":["3.02"],"c":"São José dos Campos","g":"Pequena","s":"Lean","v":40000,"k":23480000},{"p":395,"t":307,"e":"STRATUS COMPOSTOS ESTRUTURAIS LTDA","u":["3.02"],"c":"São José dos Campos","g":"Média","s":"Lean + Digitalização","v":80000,"k":23560000},{"p":396,"t":324,"e":"TURBINOX INDUSTRIA E IMPORTACAO E EXPORTACAO LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":23600000},{"p":397,"t":340,"e":"MG INDUSTRIA E COMERCIO LTDA","u":["4.02"],"c":"Sorocaba","g":"Micro","s":"Lean","v":40000,"k":23640000},{"p":398,"t":341,"e":"JUPAR INDUSTRIA E COMERCIO LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":23680000},{"p":399,"t":347,"e":"SBL INDUSTRIA E COMERCIO LTDA","u":["4.02"],"c":"Sorocaba","g":"Micro","s":"Lean","v":40000,"k":23720000},{"p":400,"t":351,"e":"J.T. SAKAMOTO LTDA","u":["6.04"],"c":"Franca","g":"Micro","s":"Lean","v":40000,"k":23760000},{"p":401,"t":354,"e":"AUTOLIV DO BRASIL LTDA","u":["1.28"],"c":"Taubaté","g":"Grande","s":"Lean","v":120000,"k":23880000},{"p":402,"t":356,"e":"FUERZA - EQUIPAMENTOS RODOVIARIOS LTDA","u":["1.28"],"c":"Guarulhos","g":"Pequena","s":"Lean","v":40000,"k":23920000},{"p":403,"t":366,"e":"Razão Social:\tBORVEDA INDUSTRIA E COMERCIO DE PRODUTOS DE BORRACHA E PLASTICO LTDA","u":["1.13"],"c":"São Paulo","g":"Pequena","s":"Lean","v":40000,"k":23960000},{"p":404,"t":371,"e":"METALURGICA CATAGUAZES LTDA","u":["8.90"],"c":"Valentim Gentil","g":"Pequena","s":"Lean","v":40000,"k":24000000},{"p":405,"t":416,"e":"MUVIQ BRASIL FABRICACAO DE PECAS E ACESSORIOS LTDA","u":["5.62"],"c":"Indaiatuba","g":"Média","s":"Lean","v":120000,"k":24120000},{"p":406,"t":422,"e":"EMBRABLIN VIDROS DE SEGURANCA LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":24160000},{"p":407,"t":437,"e":"EUROVAN IMPLEMENTOS RODOVIÁRIOS LTDA","u":["8.90"],"c":"Votuporanga","g":"Micro","s":"Lean","v":40000,"k":24200000},{"p":408,"t":503,"e":"COPLAC INDUSTRIA E COMERCIO LTDA","u":["3.02","3.01"],"c":"Taubaté","g":"Média","s":"Lean + Digitalização","v":120000,"k":24320000},{"p":409,"t":519,"e":"GFERTEC MOLDES E PLASTICOS LTDA","u":["4.01"],"c":"Salto","g":"Pequena","s":"Lean","v":40000,"k":24360000},{"p":410,"t":524,"e":"GFERTEC MOLDES E PLASTICOS LTDA","u":["4.01"],"c":"Salto","g":"Pequena","s":"Lean","v":40000,"k":24400000},{"p":411,"t":551,"e":"C.G.E. SOCIEDADE FABRICADORA DE PECAS AUTOMOTIVAS LTDA","u":["3.01"],"c":"Taubaté","g":"Média","s":"Lean","v":80000,"k":24480000},{"p":412,"t":554,"e":"INOVATECH SOLUCOES EM VEDACAO LTDA","u":["8.01"],"c":"Guapiaçu","g":"Pequena","s":"Lean","v":40000,"k":24520000},{"p":413,"t":610,"e":"INDUSTRIA E IMPORTADORA TRACIONA LTDA","u":["9.27","6.04"],"c":"Tupã","g":"Micro","s":"Lean + Digitalização","v":40000,"k":24560000},{"p":414,"t":619,"e":"SBI SOLUCOES EM EQUIPAMENTOS DE SOLDAGEM LTDA","u":["1.20","1.08"],"c":"São Bernardo do Campo","g":"Média","s":"Lean","v":80000,"k":24640000},{"p":415,"t":638,"e":"RENOVA COMERCIO DE PECAS AUTOMOTIVAS LTDA","u":["1.28"],"c":"Guarulhos","g":"Micro","s":"Lean","v":40000,"k":24680000},{"p":416,"t":656,"e":"SUPERTEC EQUIPAMENTOS DE PROTECAO LTDA","u":["5.68"],"c":"Campo Limpo Paulista","g":"Média","s":"Lean","v":120000,"k":24800000},{"p":417,"t":741,"e":"METALURGICA PRESSMATIC LTDA","u":["1.24"],"c":"Ferraz de Vasconcelos","g":"Pequena","s":"Lean","v":40000,"k":24840000}]</script>
+<script>
+const DATA = JSON.parse(document.getElementById('rows').textContent);
+let LIMITE = 7200000;
+const BRL = n => 'R$ ' + n.toLocaleString('pt-BR');
+const hhmm = s => '15:' + String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+
+const UNITS = [...new Set(DATA.flatMap(r=>r.u))].sort();
+const VALS  = [...new Set(DATA.map(r=>r.v))].sort((a,b)=>a-b);
+const PORTES= ['Micro','Pequena','Média','Grande'].filter(p=>DATA.some(r=>r.g===p));
+const SCOPES= [...new Set(DATA.map(r=>r.s))].sort();
+const cortePos = () => DATA.filter(r=>r.k<=LIMITE).length;
+
+const F = {un:new Set(), v:new Set(), g:new Set(), s:new Set(), t:[20,741], q:''};
+let sortKey='p', sortDir=1;
+
+/* ---------- filtros ---------- */
+function match(r){
+  if(F.un.size && !r.u.some(u=>F.un.has(u))) return false;
+  if(F.v.size  && !F.v.has(r.v)) return false;
+  if(F.g.size  && !F.g.has(r.g)) return false;
+  if(F.s.size  && !F.s.has(r.s)) return false;
+  if(r.t < F.t[0] || r.t > F.t[1]) return false;
+  if(F.q){ const q=F.q; if(!(r.e.toLowerCase().includes(q) || r.c.toLowerCase().includes(q))) return false; }
+  return true;
+}
+function chips(host, items, key, label, hot){
+  host.innerHTML = '';
+  items.forEach(v=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='chip'+(hot&&hot(v)?' hot':'');
+    b.textContent = label?label(v):v;
+    b.setAttribute('aria-pressed', F[key].has(v));
+    b.onclick=()=>{ F[key].has(v)?F[key].delete(v):F[key].add(v); render(); };
+    host.appendChild(b);
+  });
+}
+function renderChips(){
+  const f=(document.getElementById('unSearch').value||'').trim();
+  chips(document.getElementById('unChips'), UNITS.filter(u=>u.includes(f)), 'un', null, u=>u==='1.27');
+  chips(document.getElementById('vChips'), VALS, 'v', v=>BRL(v));
+  chips(document.getElementById('gChips'), PORTES, 'g');
+  chips(document.getElementById('sChips'), SCOPES, 's');
+}
+
+/* ---------- hero ---------- */
+function drawQueue(sel){
+  const W=1200,H=300, PADL=58, PADR=14, PADT=14, PADB=30;
+  const iw=W-PADL-PADR, ih=H-PADT-PADB;
+  const t0=20,t1=741, maxV=120000, maxK=24840000;
+  const x = t => PADL + (t-t0)/(t1-t0)*iw;
+  const svg=document.getElementById('queue');
+  const on=new Set(sel.map(r=>r.p));
+  let s='';
+  // eixo de tempo
+  for(let m=0;m<=12;m++){
+    const t=m*60+20; if(t>t1) break;
+    s+=`<line x1="${x(t).toFixed(1)}" y1="${PADT}" x2="${x(t).toFixed(1)}" y2="${PADT+ih}" stroke="#E4E7EA"/>`;
+    s+=`<text x="${x(t).toFixed(1)}" y="${H-10}" font-size="11" fill="#6E767F" text-anchor="middle">15:${String(m).padStart(2,'0')}</text>`;
+  }
+  // area acumulada
+  let path=`M ${PADL} ${PADT+ih}`;
+  DATA.forEach(r=>{ path += ` L ${x(r.t).toFixed(1)} ${(PADT+ih-(r.k/maxK)*ih).toFixed(1)}`; });
+  path += ` L ${PADL+iw} ${PADT+ih} Z`;
+  s+=`<path d="${path}" fill="#DFE3E7" opacity=".85"/>`;
+  // eixo esquerdo (acumulado)
+  [0,6,12,18,24].forEach(v=>{
+    const y=PADT+ih-(v*1e6/maxK)*ih;
+    s+=`<text x="${PADL-8}" y="${(y+4).toFixed(1)}" font-size="11" fill="#6E767F" text-anchor="end">${v?v+' mi':'0'}</text>`;
+  });
+  // linha de corte
+  const cp = Math.max(1, cortePos()), cutT = DATA[cp-1].t;
+  s+=`<line x1="${x(cutT).toFixed(1)}" y1="${PADT}" x2="${x(cutT).toFixed(1)}" y2="${PADT+ih}" stroke="#B45309" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  const anchor = x(cutT) > W*0.72 ? 'end' : 'start';
+  s+=`<text x="${(x(cutT)+(anchor==='end'?-7:7)).toFixed(1)}" y="${PADT+13}" font-size="11.5" fill="#B45309" font-weight="600" text-anchor="${anchor}">${BRL(LIMITE)} acaba em ${hhmm(cutT)} — proposta ${cp}</text>`;
+  // ticks
+  DATA.forEach(r=>{
+    const h=6+(r.v/maxV)*(ih*0.42), xx=x(r.t).toFixed(1), hit=on.has(r.p);
+    s+=`<line x1="${xx}" y1="${PADT+ih}" x2="${xx}" y2="${(PADT+ih-h).toFixed(1)}" stroke="${hit?'#C00000':'#C7CDD3'}" stroke-width="${hit?2:1.2}" opacity="${hit?1:.75}"><title>${r.e} · ${hhmm(r.t)} · ${BRL(r.v)} · ${r.u.join(' / ')}</title></line>`;
+  });
+  svg.innerHTML=s;
+}
+
+/* ---------- barras ---------- */
+function drawUnits(sel){
+  const cnt={};
+  sel.forEach(r=>r.u.forEach(u=>cnt[u]=(cnt[u]||0)+1));
+  const list=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const max=list.length?list[0][1]:1;
+  const host=document.getElementById('unBars'); host.innerHTML='';
+  if(!list.length){ host.innerHTML='<p style="color:var(--muted);font-size:13px;margin:0">Sem unidades na seleção.</p>'; return; }
+  list.forEach(([u,n])=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='bar'+(F.un.has(u)?' on':'');
+    b.innerHTML=`<span class="u">${u}</span><span class="track"><span style="width:${(n/max*100).toFixed(1)}%"></span></span><span class="val">${n} proposta${n>1?'s':''}</span>`;
+    b.onclick=()=>{ F.un.has(u)?F.un.delete(u):F.un.add(u); render(); };
+    host.appendChild(b);
+  });
+}
+function drawMix(sel){
+  const host=document.getElementById('mix'); host.innerHTML='';
+  const groups=[['Escopo','s',SCOPES],['Recurso','v',VALS.map(v=>BRL(v))],['Porte','g',PORTES]];
+  if(!sel.length){ host.innerHTML='<p style="color:var(--muted);font-size:13px;margin:0">Sem propostas na seleção.</p>'; return; }
+  groups.forEach(([title,key,keys])=>{
+    const h=document.createElement('p');
+    h.style.cssText='font-size:12.5px;font-weight:600;color:var(--muted);margin:10px 0 5px';
+    h.textContent=title; host.appendChild(h);
+    const cnt={};
+    sel.forEach(r=>{ const k = key==='v'?BRL(r.v):r[key]; cnt[k]=(cnt[k]||0)+1; });
+    const max=Math.max(...Object.values(cnt));
+    keys.filter(k=>cnt[k]).forEach(k=>{
+      const n=cnt[k], row=document.createElement('div');
+      row.className='bar mixrow';
+      row.innerHTML=`<span class="u">${k}</span>`+
+                    `<span class="track"><span style="width:${(n/max*100).toFixed(1)}%"></span></span>`+
+                    `<span class="val">${n} · ${(n/sel.length*100).toFixed(0)}%</span>`;
+      host.appendChild(row);
+    });
+  });
+}
+
+/* ---------- kpis + tabela ---------- */
+function drawKpis(sel){
+  const tot=sel.reduce((a,r)=>a+r.v,0);
+  const dentro=sel.filter(r=>r.k<=LIMITE).length;
+  const pos=sel.length?Math.round(sel.reduce((a,r)=>a+r.p,0)/sel.length):0;
+  const k=[
+    [sel.length, 'propostas na seleção'],
+    [BRL(tot), 'recurso pedido'],
+    [sel.length?BRL(Math.round(tot/sel.length)):'—', 'ticket médio'],
+    [sel.length?('#'+pos):'—', 'posição média na fila'],
+    [sel.length?dentro+' de '+sel.length:'—', 'dentro do corte simulado', 'cut'],
+  ];
+  document.getElementById('kpis').innerHTML = k.map(([n,l,c])=>
+    `<div class="kpi ${c||''}"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+}
+function drawTable(sel){
+  const rows=[...sel].sort((a,b)=>{
+    const A = sortKey==='un'? a.u.join('/') : a[sortKey];
+    const B = sortKey==='un'? b.u.join('/') : b[sortKey];
+    return (A>B?1:A<B?-1:0)*sortDir;
+  });
+  document.getElementById('tcount').textContent =
+    `${rows.length} proposta${rows.length===1?'':'s'} · ordenadas por ${document.querySelector(`th[data-k="${sortKey}"]`).textContent.toLowerCase()}`;
+  document.getElementById('empty').hidden = rows.length>0;
+  document.querySelector('#tbl tbody').innerHTML = rows.map(r=>{
+    const dentro = r.k<=LIMITE;
+    return `<tr class="${dentro?'':'out'} ${r.u.includes('1.27')?'hot':''}">
+      <td class="num">${r.p}</td><td>${hhmm(r.t)}</td><td>${r.e}</td>
+      <td>${r.u.join(' / ')||'—'}</td><td>${r.c}</td><td>${r.g}</td><td>${r.s}</td>
+      <td class="num">${BRL(r.v)}</td><td class="num">${BRL(r.k)}</td>
+      <td><span class="tag ${dentro?'in':'out'}">${dentro?'dentro':'fora'}</span></td></tr>`;
+  }).join('');
+}
+
+function render(){
+  const sel=DATA.filter(match);
+  const cp=Math.max(1,cortePos());
+  document.getElementById('legCut').textContent = `linha de corte: ${BRL(LIMITE)}, na proposta ${cp} (${hhmm(DATA[cp-1].t)})`;
+  renderChips(); drawQueue(sel); drawKpis(sel); drawUnits(sel); drawMix(sel); drawTable(sel);
+  document.getElementById('heroTitle').textContent = F.un.size||F.v.size||F.g.size||F.s.size||F.q||F.t[0]>20||F.t[1]<741
+    ? `${sel.length} de 417 propostas em vermelho. A área cinza é o acumulado de todo o DR-SP.`
+    : 'Cada traço é uma proposta, na ordem em que entrou. A altura é o valor pedido.';
+}
+
+/* ---------- eventos ---------- */
+const lim=document.getElementById('lim');
+lim.oninput = () => { LIMITE=+lim.value; document.getElementById('limLab').value=BRL(LIMITE); render(); };
+document.querySelectorAll('[data-lim]').forEach(b=>b.onclick=()=>{ lim.value=b.dataset.lim; lim.oninput(); });
+document.getElementById('unSearch').oninput = renderChips;
+document.getElementById('q').oninput = e => { F.q = e.target.value.trim().toLowerCase(); render(); };
+const t0=document.getElementById('t0'), t1=document.getElementById('t1');
+function timeChange(){
+  let a=+t0.value, b=+t1.value;
+  if(a>b){ if(document.activeElement===t0) b=a, t1.value=b; else a=b, t0.value=a; }
+  F.t=[a,b];
+  document.getElementById('t0lab').textContent=hhmm(a);
+  document.getElementById('t1lab').textContent=hhmm(b);
+  render();
+}
+t0.oninput=timeChange; t1.oninput=timeChange;
+document.querySelectorAll('[data-clear]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.clear;
+  if(k==='t'){ t0.value=20; t1.value=741; timeChange(); return; }
+  if(k==='q'){ document.getElementById('q').value=''; F.q=''; render(); return; }
+  F[k].clear(); render();
+});
+document.querySelectorAll('#tbl th').forEach(th=>{
+  th.tabIndex=0;
+  const go=()=>{
+    const k=th.dataset.k;
+    sortDir = (k===sortKey)? -sortDir : 1;
+    sortKey = k;
+    document.querySelectorAll('#tbl th').forEach(o=>o.removeAttribute('data-dir'));
+    th.dataset.dir=sortDir;
+    drawTable(DATA.filter(match));
+  };
+  th.onclick=go;
+  th.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } };
+});
+document.getElementById('csv').onclick=()=>{
+  const sel=DATA.filter(match);
+  const head=['Fila','Horario','Empresa','Unidade','Cidade','Porte','Escopo','Recurso','Acumulado_DRSP','Corte_simulado'];
+  const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const csv=[head.join(';')].concat(sel.map(r=>[r.p,hhmm(r.t),r.e,r.u.join(' / '),r.c,r.g,r.s,r.v,r.k,
+    r.k<=LIMITE?'dentro':'fora'].map(esc).join(';'))).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='mover-handson-selecao.csv'; a.click(); URL.revokeObjectURL(a.href);
+};
+
+render();
+</script>
+</body>
+</html>
